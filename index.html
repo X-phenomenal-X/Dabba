@@ -13,6 +13,8 @@
 <link rel="manifest" href="manifest.json" />
 <link rel="apple-touch-icon" href="icon-180.png" />
 <link rel="icon" href="icon-192.png" />
+<link rel="preconnect" href="https://api.fontshare.com" />
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet" />
 
 <link rel="apple-touch-startup-image" href="splash-iphonese-8.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" />
 <link rel="apple-touch-startup-image" href="splash-iphone11-xr.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" />
@@ -27,7 +29,7 @@
   #initial-loader {
     position: fixed; inset: 0; background: #1C1815; color: #F2E9DC;
     display: flex; align-items: center; justify-content: center;
-    font-family: -apple-system, sans-serif; font-size: 0.9rem; opacity: 0.7;
+    font-family: 'Satoshi', sans-serif; font-size: 0.9rem; opacity: 0.7;
   }
 </style>
 </head>
@@ -217,13 +219,13 @@
 
 <script type="text/babel">
 // ---- Inline icon components (replacing lucide-react, no dependency needed) ----
-function IconBase({ size = 18, color = "currentColor", strokeWidth = 2, style, className, children }) {
+function IconBase({ size = 18, color = "currentColor", strokeWidth = 2, style, className, fill = "none", children }) {
   return (
     <svg
       width={size}
       height={size}
       viewBox="0 0 24 24"
-      fill="none"
+      fill={fill}
       stroke={color}
       strokeWidth={strokeWidth}
       strokeLinecap="round"
@@ -493,6 +495,21 @@ function Share2(props) {
     </IconBase>
   );
 }
+function Star(props) {
+  return (
+    <IconBase {...props}>
+      <polygon points="12 2 15 8.5 22 9.5 17 14.5 18.2 21.5 12 18.2 5.8 21.5 7 14.5 2 9.5 9 8.5 12 2" />
+    </IconBase>
+  );
+}
+function Copy(props) {
+  return (
+    <IconBase {...props}>
+      <rect x="9" y="9" width="12" height="12" rx="2" />
+      <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" />
+    </IconBase>
+  );
+}
 
 </script>
 
@@ -586,14 +603,53 @@ function SimpleWeightChart({ data, startWeight }) {
 <script type="text/babel">
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
+// ---- Design tokens ----
+// PALETTE: every color used more than a few times across the app, named semantically.
+// One-off decorative hex values inside hand-drawn SVG illustrations (mascot, dish icons)
+// are intentionally left as literals — those are bespoke illustration pigments, not
+// reusable system colors, so forcing them into named tokens would be artificial.
+const PALETTE = {
+  bg: PALETTE.bg,
+  surface: PALETTE.surface,
+  surfaceDark: PALETTE.surfaceDark,
+  border: PALETTE.border,
+  borderLight: PALETTE.borderLight,
+  textPrimary: PALETTE.textPrimary,
+  textSecondary: PALETTE.textSecondary,
+  textMuted: PALETTE.textMuted,
+  textMutedBrown: PALETTE.textMutedBrown,
+  textMutedGreen: PALETTE.textMutedGreen,
+  accent: PALETTE.accent,
+  accent2: PALETTE.accent2,
+  success: PALETTE.success,
+  error: PALETTE.error,
+  amberDark: PALETTE.amberDark,
+  cream: PALETTE.cream,
+};
+
+// S: spacing scale for padding/margin/gap/borderRadius. Kept deliberately separate from
+// font-size values (a different semantic scale) rather than conflating the two.
+const S = {
+  xs: "0.25rem",
+  sm: "0.5rem",
+  md: "0.75rem",
+  lg: "1rem",
+  xl: "1.25rem",
+  xxl: "1.5rem",
+  xxxl: "1.75rem",
+};
+
 const TASKS = [
-  { id: "morningShake", label: "Morning shake", detail: "Naked Mass + full milk + banana", time: "6:15 AM", kcal: 700, protein: 50, reminderHour: 8 },
-  { id: "breakfast", label: "Breakfast", detail: "Parantha + butter + cheese + dahi", time: "6:15–7:00 AM", kcal: 450, protein: 14, reminderHour: 9 },
-  { id: "lunch", label: "Lunch tiffin", detail: "Reheat yesterday's batch", time: "1:00 PM", kcal: 750, protein: 28, reminderHour: 15 },
-  { id: "dinner", label: "Dinner", detail: "Tiffin backup or doctored noodles", time: "7:30 PM", kcal: 750, protein: 28, reminderHour: 21 },
-  { id: "cookSession", label: "Cook session", detail: "Batch-cook tomorrow's tiffin", time: "9:00 PM", kcal: 0, protein: 0, reminderHour: 23 },
-  { id: "nightShake", label: "Night shake", detail: "Naked Mass + milk + dahi", time: "9:30 PM", kcal: 650, protein: 50, reminderHour: 23 },
+  { id: "morningShake", label: "Morning shake", detail: "Naked Mass + full milk + banana", time: "6:15 AM", kcal: 700, protein: 50, carbs: 90, fat: 15, reminderHour: 8 },
+  { id: "breakfast", label: "Breakfast", detail: "Parantha + butter + cheese + dahi", time: "6:15–7:00 AM", kcal: 450, protein: 14, carbs: 45, fat: 23, reminderHour: 9 },
+  { id: "lunch", label: "Lunch tiffin", detail: "Reheat yesterday's batch", time: "1:00 PM", kcal: 750, protein: 28, carbs: 95, fat: 29, reminderHour: 15 },
+  { id: "dinner", label: "Dinner", detail: "Tiffin backup or doctored noodles", time: "7:30 PM", kcal: 750, protein: 28, carbs: 90, fat: 33, reminderHour: 21 },
+  { id: "cookSession", label: "Cook session", detail: "Batch-cook tomorrow's tiffin", time: "9:00 PM", kcal: 0, protein: 0, carbs: 0, fat: 0, reminderHour: 23 },
+  { id: "nightShake", label: "Night shake", detail: "Naked Mass + milk + dahi", time: "9:30 PM", kcal: 650, protein: 50, carbs: 75, fat: 17, reminderHour: 23 },
 ];
+
+const CARB_TARGET = 350;
+const FAT_TARGET = 90;
 
 const CALORIE_TARGET = 2800;
 const PROTEIN_TARGET = 95;
@@ -1736,25 +1792,25 @@ function Mascot({ pct, size = 108 }) {
   return (
     <div style={{ position: "relative", width: size, height: size }}>
       <svg viewBox="0 0 88 100" width={size} height={size * (100 / 88)}>
-        <path d="M 30 18 Q 44 2 58 18" stroke="#5C4E38" strokeWidth="4" fill="none" strokeLinecap="round" />
-        <rect x="14" y="16" width="60" height="18" rx="9" fill="#E3A008" />
-        <rect x="10" y="32" width="68" height="26" rx="8" fill="#C97C2C" />
-        <rect x="10" y="56" width="68" height="26" rx="8" fill="#B0691F" />
-        <rect x="18" y="38" width="52" height="40" rx="14" fill="#FCEBC8" />
+        <path d="M 30 18 Q 44 2 58 18" stroke={PALETTE.textMutedBrown} strokeWidth="4" fill="none" strokeLinecap="round" />
+        <rect x="14" y="16" width="60" height="18" rx="9" fill={PALETTE.accent} />
+        <rect x="10" y="32" width="68" height="26" rx="8" fill={PALETTE.accent2} />
+        <rect x="10" y="56" width="68" height="26" rx="8" fill={PALETTE.amberDark} />
+        <rect x="18" y="38" width="52" height="40" rx="14" fill={PALETTE.cream} />
         {eyesClosed ? (
           <>
-            <path d="M 30 52 Q 34 55 38 52" stroke="#1C1815" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-            <path d="M 50 52 Q 54 55 58 52" stroke="#1C1815" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+            <path d="M 30 52 Q 34 55 38 52" stroke={PALETTE.bg} strokeWidth="2.5" fill="none" strokeLinecap="round" />
+            <path d="M 50 52 Q 54 55 58 52" stroke={PALETTE.bg} strokeWidth="2.5" fill="none" strokeLinecap="round" />
           </>
         ) : (
           <>
-            <circle cx="34" cy="52" r="3.6" fill="#1C1815" />
-            <circle cx="54" cy="52" r="3.6" fill="#1C1815" />
+            <circle cx="34" cy="52" r="3.6" fill={PALETTE.bg} />
+            <circle cx="54" cy="52" r="3.6" fill={PALETTE.bg} />
           </>
         )}
-        <ellipse cx="27" cy="60" rx="5" ry="3" fill="#E3A008" opacity="0.35" />
-        <ellipse cx="61" cy="60" rx="5" ry="3" fill="#E3A008" opacity="0.35" />
-        <path d={mouth} stroke="#1C1815" strokeWidth="2.8" fill="none" strokeLinecap="round" />
+        <ellipse cx="27" cy="60" rx="5" ry="3" fill={PALETTE.accent} opacity="0.35" />
+        <ellipse cx="61" cy="60" rx="5" ry="3" fill={PALETTE.accent} opacity="0.35" />
+        <path d={mouth} stroke={PALETTE.bg} strokeWidth="2.8" fill="none" strokeLinecap="round" />
       </svg>
 
       {mood !== "sleepy" && (
@@ -1794,14 +1850,30 @@ function inferCategory(name = "") {
   return "other";
 }
 
+// Rough veg/egg/non-veg classifier from ingredient text, used for the diet filter.
+function inferDiet(recipe) {
+  const text = ((recipe.ingredients || []).join(" ") + " " + recipe.name).toLowerCase();
+  if (/chicken|mutton|lamb|fish|prawn|keema|meat|beef|pork|seafood|goat/.test(text)) return "nonveg";
+  if (/\begg/.test(text)) return "egg";
+  return "veg";
+}
+
+// Pulls the highest number out of a free-text calorie string (e.g. "~750–850 cal" -> 850)
+// so recipes can be sorted by calories despite cal being stored as display text.
+function parseCalNumber(calString) {
+  if (!calString) return 0;
+  const nums = (calString.match(/\d+/g) || []).map(Number);
+  return nums.length ? Math.max(...nums) : 0;
+}
+
 const DISH_THEME = {
-  curry: { bg: "#3A2E14", accent: "#E3A008" },
-  noodles: { bg: "#2E2A1C", accent: "#C97C2C" },
+  curry: { bg: "#3A2E14", accent: PALETTE.accent },
+  noodles: { bg: "#2E2A1C", accent: PALETTE.accent2 },
   sandwich: { bg: "#332417", accent: "#D9A75C" },
   egg: { bg: "#33301F", accent: "#F0C94A" },
-  drink: { bg: "#1E2E28", accent: "#4A7C59" },
+  drink: { bg: "#1E2E28", accent: PALETTE.success },
   sweet: { bg: "#3A2030", accent: "#C97C9C" },
-  other: { bg: "#2A2620", accent: "#8A7A63" },
+  other: { bg: "#2A2620", accent: PALETTE.textMuted },
 };
 
 // Cute flat-style dish illustrations, category-matched, no external images needed.
@@ -1811,21 +1883,21 @@ function DishIllustration({ category = "other", size = 52 }) {
     curry: (
       <>
         <path d="M14 34 Q14 48 32 48 Q50 48 50 34 Z" fill={theme.accent} />
-        <ellipse cx="32" cy="32" rx="19" ry="6" fill="#FCEBC8" />
-        <circle cx="26" cy="30" r="2" fill="#B0691F" />
-        <circle cx="36" cy="29" r="2" fill="#B0691F" />
-        <circle cx="31" cy="33" r="2" fill="#B0691F" />
+        <ellipse cx="32" cy="32" rx="19" ry="6" fill={PALETTE.cream} />
+        <circle cx="26" cy="30" r="2" fill={PALETTE.amberDark} />
+        <circle cx="36" cy="29" r="2" fill={PALETTE.amberDark} />
+        <circle cx="31" cy="33" r="2" fill={PALETTE.amberDark} />
       </>
     ),
     noodles: (
       <>
         <path d="M14 34 Q14 48 32 48 Q50 48 50 34 Z" fill={theme.accent} />
-        <path d="M20 30 Q24 24 20 20" stroke="#FCEBC8" strokeWidth="2.4" fill="none" strokeLinecap="round" />
-        <path d="M28 32 Q32 24 28 18" stroke="#FCEBC8" strokeWidth="2.4" fill="none" strokeLinecap="round" />
-        <path d="M36 32 Q40 25 36 20" stroke="#FCEBC8" strokeWidth="2.4" fill="none" strokeLinecap="round" />
-        <path d="M44 30 Q47 25 44 21" stroke="#FCEBC8" strokeWidth="2.4" fill="none" strokeLinecap="round" />
-        <rect x="40" y="12" width="2.4" height="16" rx="1.2" fill="#5C4E38" transform="rotate(18 40 12)" />
-        <rect x="45" y="12" width="2.4" height="16" rx="1.2" fill="#5C4E38" transform="rotate(18 45 12)" />
+        <path d="M20 30 Q24 24 20 20" stroke={PALETTE.cream} strokeWidth="2.4" fill="none" strokeLinecap="round" />
+        <path d="M28 32 Q32 24 28 18" stroke={PALETTE.cream} strokeWidth="2.4" fill="none" strokeLinecap="round" />
+        <path d="M36 32 Q40 25 36 20" stroke={PALETTE.cream} strokeWidth="2.4" fill="none" strokeLinecap="round" />
+        <path d="M44 30 Q47 25 44 21" stroke={PALETTE.cream} strokeWidth="2.4" fill="none" strokeLinecap="round" />
+        <rect x="40" y="12" width="2.4" height="16" rx="1.2" fill={PALETTE.textMutedBrown} transform="rotate(18 40 12)" />
+        <rect x="45" y="12" width="2.4" height="16" rx="1.2" fill={PALETTE.textMutedBrown} transform="rotate(18 45 12)" />
       </>
     ),
     sandwich: (
@@ -1833,34 +1905,34 @@ function DishIllustration({ category = "other", size = 52 }) {
         <ellipse cx="32" cy="44" rx="20" ry="4" fill={theme.accent} opacity="0.4" />
         <path d="M14 40 L32 16 L50 40 Z" fill="#E8C179" />
         <path d="M17 36 L47 36 L44 40 L20 40 Z" fill="#F0C94A" />
-        <path d="M22 30 L42 30 L40 33 L24 33 Z" fill="#FCEBC8" />
+        <path d="M22 30 L42 30 L40 33 L24 33 Z" fill={PALETTE.cream} />
       </>
     ),
     egg: (
       <>
-        <ellipse cx="32" cy="34" rx="20" ry="14" fill="#FCEBC8" />
+        <ellipse cx="32" cy="34" rx="20" ry="14" fill={PALETTE.cream} />
         <ellipse cx="34" cy="34" rx="8" ry="8" fill="#F0A430" />
-        <ellipse cx="31" cy="31" rx="2.4" ry="2" fill="#FCEBC8" opacity="0.7" />
+        <ellipse cx="31" cy="31" rx="2.4" ry="2" fill={PALETTE.cream} opacity="0.7" />
       </>
     ),
     drink: (
       <>
         <path d="M22 14 L42 14 L38 46 Q32 50 26 46 Z" fill={theme.accent} opacity="0.85" />
-        <path d="M24 20 L40 20 L38 26 L26 26 Z" fill="#FCEBC8" opacity="0.9" />
+        <path d="M24 20 L40 20 L38 26 L26 26 Z" fill={PALETTE.cream} opacity="0.9" />
       </>
     ),
     sweet: (
       <>
         <circle cx="32" cy="32" r="18" fill={theme.accent} opacity="0.9" />
-        <circle cx="26" cy="26" r="2.4" fill="#FCEBC8" />
-        <circle cx="38" cy="27" r="2.4" fill="#FCEBC8" />
-        <circle cx="32" cy="37" r="2.4" fill="#FCEBC8" />
+        <circle cx="26" cy="26" r="2.4" fill={PALETTE.cream} />
+        <circle cx="38" cy="27" r="2.4" fill={PALETTE.cream} />
+        <circle cx="32" cy="37" r="2.4" fill={PALETTE.cream} />
       </>
     ),
     other: (
       <>
         <path d="M14 34 Q14 48 32 48 Q50 48 50 34 Z" fill={theme.accent} />
-        <ellipse cx="32" cy="32" rx="17" ry="6" fill="#FCEBC8" />
+        <ellipse cx="32" cy="32" rx="17" ry="6" fill={PALETTE.cream} />
       </>
     ),
   }[category] || null;
@@ -1963,7 +2035,7 @@ function RecipePhoto({ recipe, size = 52 }) {
   }
 
   return (
-    <div style={{ width: size, height: size, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: "#252019" }}>
+    <div style={{ width: size, height: size, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: PALETTE.surface }}>
       {photoUrl ? (
         <img
           src={photoUrl}
@@ -1972,7 +2044,7 @@ function RecipePhoto({ recipe, size = 52 }) {
           style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
         />
       ) : (
-        <div style={{ width: "100%", height: "100%", background: "#252019" }} />
+        <div style={{ width: "100%", height: "100%", background: PALETTE.surface }} />
       )}
     </div>
   );
@@ -1991,7 +2063,7 @@ function Dabba3D({ size = 90 }) {
     height: h,
     backfaceVisibility: "hidden",
     borderRadius: "10px",
-    background: "linear-gradient(180deg, #E3A008 0%, #E3A008 26%, #C97C2C 26%, #C97C2C 63%, #B0691F 63%, #B0691F 100%)",
+    background: `linear-gradient(180deg, ${PALETTE.accent} 0%, #E3A008 26%, #C97C2C 26%, #C97C2C 63%, #B0691F 63%, #B0691F 100%)`,
     border: "1px solid rgba(0,0,0,0.25)",
     boxShadow: "inset 0 0 14px rgba(0,0,0,0.25)",
   };
@@ -2017,7 +2089,7 @@ function Dabba3D({ size = 90 }) {
             height: w,
             left: 0,
             top: halfH - w / 2,
-            background: "#E3A008",
+            background: PALETTE.accent,
             borderRadius: "10px",
             transform: `rotateX(90deg) translateZ(${halfH}px)`,
             boxShadow: "inset 0 0 10px rgba(0,0,0,0.2)",
@@ -2030,16 +2102,41 @@ function Dabba3D({ size = 90 }) {
 
 // Animated circular progress ring — used for calorie / protein daily targets.
 function Ring({ pct, size = 84, stroke = 9, color, label, value, target, unit }) {
+  const svgSize = size + 10;
+  const cx = svgSize / 2;
   const r = (size - stroke) / 2;
   const circ = 2 * Math.PI * r;
   const offset = circ - (Math.min(pct, 100) / 100) * circ;
+
+  // When the target is exceeded, a thin outer arc shows how far past 100% — framed as a
+  // bonus, not a warning, since going over on calories/protein is the actual goal here.
+  const overflowPct = pct > 100 ? Math.min(100, pct - 100) : 0;
+  const outerR = r + stroke / 2 + 4;
+  const outerCirc = 2 * Math.PI * outerR;
+  const outerOffset = outerCirc - (overflowPct / 100) * outerCirc;
+
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.4rem" }}>
-      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#1C1815" strokeWidth={stroke} />
+      <svg width={svgSize} height={svgSize} style={{ transform: "rotate(-90deg)" }}>
+        {overflowPct > 0 && <circle cx={cx} cy={cx} r={outerR} fill="none" stroke="#2A2416" strokeWidth={3} />}
+        {overflowPct > 0 && (
+          <circle
+            cx={cx}
+            cy={cx}
+            r={outerR}
+            fill="none"
+            stroke={PALETTE.success}
+            strokeWidth={3}
+            strokeDasharray={outerCirc}
+            strokeDashoffset={outerOffset}
+            strokeLinecap="round"
+            style={{ transition: "stroke-dashoffset 0.6s cubic-bezier(.4,0,.2,1)", filter: `drop-shadow(0 0 4px ${PALETTE.success}88)` }}
+          />
+        )}
+        <circle cx={cx} cy={cx} r={r} fill="none" stroke={PALETTE.bg} strokeWidth={stroke} />
         <circle
-          cx={size / 2}
-          cy={size / 2}
+          cx={cx}
+          cy={cx}
           r={r}
           fill="none"
           stroke={color}
@@ -2050,19 +2147,19 @@ function Ring({ pct, size = 84, stroke = 9, color, label, value, target, unit })
           style={{ transition: "stroke-dashoffset 0.6s cubic-bezier(.4,0,.2,1)", filter: `drop-shadow(0 0 5px ${color}88)` }}
         />
         <text
-          x={size / 2}
-          y={size / 2}
+          x={cx}
+          y={cx}
           textAnchor="middle"
           dominantBaseline="central"
-          transform={`rotate(90 ${size / 2} ${size / 2})`}
-          style={{ fill: "#F2E9DC", fontSize: "0.95rem", fontWeight: 700, fontFamily: "'Fraunces', serif" }}
+          transform={`rotate(90 ${cx} ${cx})`}
+          style={{ fill: PALETTE.textPrimary, fontSize: "0.95rem", fontWeight: 700, fontFamily: "'Fraunces', serif" }}
         >
           {value}
         </text>
       </svg>
       <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: "0.78rem", fontWeight: 600, color: "#F2E9DC" }}>{label}</div>
-        <div style={{ fontSize: "0.68rem", color: "#8A7A63" }}>
+        <div style={{ fontSize: "0.78rem", fontWeight: 600, color: PALETTE.textPrimary }}>{label}</div>
+        <div style={{ fontSize: "0.68rem", color: PALETTE.textMuted }}>
           / {target}
           {unit}
         </div>
@@ -2075,14 +2172,14 @@ function Ring({ pct, size = 84, stroke = 9, color, label, value, target, unit })
 function GrowthIllustration({ size = 76 }) {
   return (
     <svg viewBox="0 0 80 80" width={size} height={size}>
-      <ellipse cx="40" cy="66" rx="22" ry="5" fill="#4A7C59" opacity="0.15" />
-      <path d="M24 52 L56 52 L51 68 L29 68 Z" fill="#C97C2C" />
-      <rect x="24" y="48" width="32" height="6" rx="2" fill="#B0691F" />
-      <path d="M40 50 C40 36 40 30 40 22" stroke="#4A7C59" strokeWidth="3.4" fill="none" strokeLinecap="round" />
-      <path d="M40 34 C32 30 28 22 30 16 C38 18 42 26 40 34 Z" fill="#4A7C59" />
+      <ellipse cx="40" cy="66" rx="22" ry="5" fill={PALETTE.success} opacity="0.15" />
+      <path d="M24 52 L56 52 L51 68 L29 68 Z" fill={PALETTE.accent2} />
+      <rect x="24" y="48" width="32" height="6" rx="2" fill={PALETTE.amberDark} />
+      <path d="M40 50 C40 36 40 30 40 22" stroke={PALETTE.success} strokeWidth="3.4" fill="none" strokeLinecap="round" />
+      <path d="M40 34 C32 30 28 22 30 16 C38 18 42 26 40 34 Z" fill={PALETTE.success} />
       <path d="M40 40 C48 37 52 30 51 24 C43 25 38 32 40 40 Z" fill="#5E9270" />
-      <circle cx="52" cy="18" r="2" fill="#E3A008" />
-      <circle cx="58" cy="26" r="1.6" fill="#E3A008" />
+      <circle cx="52" cy="18" r="2" fill={PALETTE.accent} />
+      <circle cx="58" cy="26" r="1.6" fill={PALETTE.accent} />
     </svg>
   );
 }
@@ -2091,14 +2188,14 @@ function GrowthIllustration({ size = 76 }) {
 function BasketIllustration({ size = 76 }) {
   return (
     <svg viewBox="0 0 80 80" width={size} height={size}>
-      <path d="M20 40 Q40 24 60 40" stroke="#5C4E38" strokeWidth="4" fill="none" strokeLinecap="round" />
-      <path d="M16 42 L64 42 L58 68 Q40 74 22 68 Z" fill="#C97C2C" />
-      <path d="M16 42 L64 42 L62 48 L18 48 Z" fill="#B0691F" />
-      <path d="M22 55 L58 55" stroke="#B0691F" strokeWidth="1.6" />
-      <path d="M22 61 L58 61" stroke="#B0691F" strokeWidth="1.6" />
-      <path d="M30 40 Q34 24 30 14" stroke="#E3A008" strokeWidth="5" fill="none" strokeLinecap="round" />
-      <ellipse cx="42" cy="34" rx="9" ry="8" fill="#FCEBC8" />
-      <path d="M50 40 Q56 28 52 18" stroke="#4A7C59" strokeWidth="4" fill="none" strokeLinecap="round" />
+      <path d="M20 40 Q40 24 60 40" stroke={PALETTE.textMutedBrown} strokeWidth="4" fill="none" strokeLinecap="round" />
+      <path d="M16 42 L64 42 L58 68 Q40 74 22 68 Z" fill={PALETTE.accent2} />
+      <path d="M16 42 L64 42 L62 48 L18 48 Z" fill={PALETTE.amberDark} />
+      <path d="M22 55 L58 55" stroke={PALETTE.amberDark} strokeWidth="1.6" />
+      <path d="M22 61 L58 61" stroke={PALETTE.amberDark} strokeWidth="1.6" />
+      <path d="M30 40 Q34 24 30 14" stroke={PALETTE.accent} strokeWidth="5" fill="none" strokeLinecap="round" />
+      <ellipse cx="42" cy="34" rx="9" ry="8" fill={PALETTE.cream} />
+      <path d="M50 40 Q56 28 52 18" stroke={PALETTE.success} strokeWidth="4" fill="none" strokeLinecap="round" />
     </svg>
   );
 }
@@ -2107,13 +2204,13 @@ function BasketIllustration({ size = 76 }) {
 function ChefIllustration({ size = 76 }) {
   return (
     <svg viewBox="0 0 80 80" width={size} height={size}>
-      <path d="M24 44 Q18 30 28 22 Q30 12 40 12 Q50 12 52 22 Q62 30 56 44 Z" fill="#FCEBC8" />
-      <rect x="24" y="42" width="32" height="10" rx="4" fill="#FCEBC8" />
-      <circle cx="34" cy="40" r="2.4" fill="#1C1815" />
-      <circle cx="46" cy="40" r="2.4" fill="#1C1815" />
-      <path d="M34 47 Q40 51 46 47" stroke="#1C1815" strokeWidth="2.2" fill="none" strokeLinecap="round" />
-      <ellipse cx="30" cy="43" rx="2.8" ry="1.8" fill="#E3A008" opacity="0.3" />
-      <ellipse cx="50" cy="43" rx="2.8" ry="1.8" fill="#E3A008" opacity="0.3" />
+      <path d="M24 44 Q18 30 28 22 Q30 12 40 12 Q50 12 52 22 Q62 30 56 44 Z" fill={PALETTE.cream} />
+      <rect x="24" y="42" width="32" height="10" rx="4" fill={PALETTE.cream} />
+      <circle cx="34" cy="40" r="2.4" fill={PALETTE.bg} />
+      <circle cx="46" cy="40" r="2.4" fill={PALETTE.bg} />
+      <path d="M34 47 Q40 51 46 47" stroke={PALETTE.bg} strokeWidth="2.2" fill="none" strokeLinecap="round" />
+      <ellipse cx="30" cy="43" rx="2.8" ry="1.8" fill={PALETTE.accent} opacity="0.3" />
+      <ellipse cx="50" cy="43" rx="2.8" ry="1.8" fill={PALETTE.accent} opacity="0.3" />
     </svg>
   );
 }
@@ -2124,7 +2221,7 @@ function PageBanner({ illustration, title, subtitle }) {
       {illustration}
       <div>
         <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: "1.3rem" }}>{title}</div>
-        <div style={{ fontFamily: "'Fraunces', serif", fontStyle: "italic", fontSize: "0.8rem", color: "#8A7A63", marginTop: "0.1rem" }}>{subtitle}</div>
+        <div style={{ fontFamily: "'Fraunces', serif", fontStyle: "italic", fontSize: "0.8rem", color: PALETTE.textMuted, marginTop: "0.1rem" }}>{subtitle}</div>
       </div>
     </div>
   );
@@ -2238,22 +2335,22 @@ function CookingMode({ recipe, onClose, onAddToShopping, onMarkMeal }) {
   const toggleIngredient = (idx) => setIngredientChecks((c) => ({ ...c, [idx]: !c[idx] }));
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 70, background: "#1C1815", display: "flex", flexDirection: "column" }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 70, background: PALETTE.bg, display: "flex", flexDirection: "column" }}>
       <style>{`
         @keyframes ringPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.04); } }
         .timer-pulse { animation: ringPulse 1s ease-in-out infinite; }
       `}</style>
 
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "1.1rem 1.25rem", borderBottom: "1px solid #34291C", paddingTop: "calc(1.1rem + env(safe-area-inset-top))" }}>
-        <button onClick={onClose} style={{ background: "#252019", border: "1px solid #34291C", borderRadius: "999px", width: "34px", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-          <X size={16} color="#F2E9DC" />
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "1.1rem 1.25rem", borderBottom: `1px solid ${PALETTE.border}`, paddingTop: "calc(1.1rem + env(safe-area-inset-top))" }}>
+        <button onClick={onClose} style={{ background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: "999px", width: "34px", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+          <X size={16} color={PALETTE.textPrimary} />
         </button>
         <div style={{ textAlign: "center", flex: 1, margin: "0 0.75rem" }}>
-          <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: "1rem", color: "#F2E9DC" }}>{recipe.name}</div>
-          {gathering && <div style={{ fontSize: "0.72rem", color: "#8A7A63" }}>Gather your ingredients</div>}
+          <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: "1rem", color: PALETTE.textPrimary }}>{recipe.name}</div>
+          {gathering && <div style={{ fontSize: "0.72rem", color: PALETTE.textMuted }}>Gather your ingredients</div>}
           {!gathering && !done && (
-            <div style={{ fontSize: "0.72rem", color: "#8A7A63" }}>
+            <div style={{ fontSize: "0.72rem", color: PALETTE.textMuted }}>
               Step {stepIdx + 1} of {total}
             </div>
           )}
@@ -2265,7 +2362,7 @@ function CookingMode({ recipe, onClose, onAddToShopping, onMarkMeal }) {
       {!gathering && (
         <div style={{ display: "flex", gap: "0.3rem", padding: "0.9rem 1.25rem 0", justifyContent: "center" }}>
           {steps.map((_, i) => (
-            <div key={i} style={{ height: "4px", flex: 1, maxWidth: "36px", borderRadius: "999px", background: i <= stepIdx ? "#E3A008" : "#34291C", transition: "background 0.2s" }} />
+            <div key={i} style={{ height: "4px", flex: 1, maxWidth: "36px", borderRadius: "999px", background: i <= stepIdx ? PALETTE.accent : PALETTE.border, transition: "background 0.2s" }} />
           ))}
         </div>
       )}
@@ -2274,81 +2371,81 @@ function CookingMode({ recipe, onClose, onAddToShopping, onMarkMeal }) {
       <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: gathering ? "flex-start" : "center", padding: "1.5rem", textAlign: "center", overflowY: "auto" }}>
         {gathering ? (
           <div className="fade-in" style={{ width: "100%", maxWidth: "360px", textAlign: "left" }}>
-            <div style={{ fontSize: "0.82rem", color: "#8A7A63", marginBottom: "0.9rem", textAlign: "center" }}>Tap each item off as you set it out — makes the steps go faster.</div>
+            <div style={{ fontSize: "0.82rem", color: PALETTE.textMuted, marginBottom: "0.9rem", textAlign: "center" }}>Tap each item off as you set it out — makes the steps go faster.</div>
             {(recipe.ingredients || []).map((ing, i) => (
               <button
                 key={ing + i}
                 onClick={() => toggleIngredient(i)}
-                style={{ width: "100%", display: "flex", alignItems: "center", gap: "0.7rem", background: "#252019", border: "1px solid #34291C", borderRadius: "10px", padding: "0.7rem 0.9rem", marginBottom: "0.4rem", cursor: "pointer" }}
+                style={{ width: "100%", display: "flex", alignItems: "center", gap: "0.7rem", background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: "10px", padding: "0.7rem 0.9rem", marginBottom: "0.4rem", cursor: "pointer" }}
               >
                 <div
                   style={{
                     width: "20px",
                     height: "20px",
                     borderRadius: "6px",
-                    border: ingredientChecks[i] ? "none" : "2px solid #4A3E2C",
-                    background: ingredientChecks[i] ? "#4A7C59" : "transparent",
+                    border: ingredientChecks[i] ? "none" : `2px solid ${PALETTE.borderLight}`,
+                    background: ingredientChecks[i] ? PALETTE.success : "transparent",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     flexShrink: 0,
                   }}
                 >
-                  {ingredientChecks[i] && <Check size={13} color="#F2E9DC" strokeWidth={3} />}
+                  {ingredientChecks[i] && <Check size={13} color={PALETTE.textPrimary} strokeWidth={3} />}
                 </div>
-                <span style={{ fontSize: "0.88rem", color: ingredientChecks[i] ? "#5C6E58" : "#F2E9DC", textDecoration: ingredientChecks[i] ? "line-through" : "none" }}>{ing}</span>
+                <span style={{ fontSize: "0.88rem", color: ingredientChecks[i] ? PALETTE.textMutedGreen : PALETTE.textPrimary, textDecoration: ingredientChecks[i] ? "line-through" : "none" }}>{ing}</span>
               </button>
             ))}
           </div>
         ) : !done ? (
           <>
-            <div className="pop-in" key={stepIdx} style={{ fontSize: "1.25rem", lineHeight: 1.6, color: "#F2E9DC", maxWidth: "360px", fontFamily: "'Fraunces', serif", fontWeight: 500 }}>
+            <div className="pop-in" key={stepIdx} style={{ fontSize: "1.25rem", lineHeight: 1.6, color: PALETTE.textPrimary, maxWidth: "360px", fontFamily: "'Fraunces', serif", fontWeight: 500 }}>
               {steps[stepIdx]}
             </div>
 
             {timerMinutes && (
               <div style={{ marginTop: "2rem", display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem" }}>
-                <div className={running ? "timer-pulse" : ""} style={{ fontSize: "2.2rem", fontWeight: 700, fontFamily: "'Fraunces', serif", color: secondsLeft === 0 ? "#4A7C59" : "#E3A008" }}>
+                <div className={running ? "timer-pulse" : ""} style={{ fontSize: "2.2rem", fontWeight: 700, fontFamily: "'Fraunces', serif", color: secondsLeft === 0 ? PALETTE.success : PALETTE.accent }}>
                   {formatMMSS(secondsLeft || 0)}
                 </div>
                 <div style={{ display: "flex", gap: "0.6rem" }}>
                   <button
                     onClick={() => setRunning(!running)}
                     disabled={secondsLeft === 0}
-                    style={{ background: "#E3A008", border: "none", borderRadius: "999px", width: "48px", height: "48px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", opacity: secondsLeft === 0 ? 0.5 : 1 }}
+                    style={{ background: PALETTE.accent, border: "none", borderRadius: "999px", width: "48px", height: "48px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", opacity: secondsLeft === 0 ? 0.5 : 1 }}
                   >
-                    {running ? <Pause size={18} color="#1C1815" /> : <Play size={18} color="#1C1815" />}
+                    {running ? <Pause size={18} color={PALETTE.bg} /> : <Play size={18} color={PALETTE.bg} />}
                   </button>
                   <button
                     onClick={() => {
                       setRunning(false);
                       setSecondsLeft(timerMinutes * 60);
                     }}
-                    style={{ background: "#252019", border: "1px solid #34291C", borderRadius: "999px", width: "48px", height: "48px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+                    style={{ background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: "999px", width: "48px", height: "48px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
                   >
-                    <RotateCcw size={16} color="#8A7A63" />
+                    <RotateCcw size={16} color={PALETTE.textMuted} />
                   </button>
                 </div>
-                {secondsLeft === 0 && <div style={{ fontSize: "0.78rem", color: "#4A7C59", fontWeight: 600 }}>Time's up — check it and move on ✓</div>}
+                {secondsLeft === 0 && <div style={{ fontSize: "0.78rem", color: PALETTE.success, fontWeight: 600 }}>Time's up — check it and move on ✓</div>}
               </div>
             )}
           </>
         ) : (
           <div className="pop-in" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem" }}>
             <Mascot pct={100} size={110} />
-            <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: "1.3rem", color: "#F2E9DC" }}>{recipe.name} is ready! 🎉</div>
-            <div style={{ fontSize: "0.85rem", color: "#8A7A63", marginBottom: "0.25rem" }}>Pack half for tomorrow if this is a batch-cook meal.</div>
+            <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: "1.3rem", color: PALETTE.textPrimary }}>{recipe.name} is ready! 🎉</div>
+            <div style={{ fontSize: "0.85rem", color: PALETTE.textMuted, marginBottom: "0.25rem" }}>Pack half for tomorrow if this is a batch-cook meal.</div>
             {onMarkMeal && (
               <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.25rem" }}>
                 <button
                   onClick={() => onMarkMeal("lunch")}
-                  style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: "#4A7C59", border: "none", borderRadius: "10px", padding: "0.6rem 1rem", color: "#F2E9DC", fontSize: "0.82rem", fontWeight: 700, cursor: "pointer" }}
+                  style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: PALETTE.success, border: "none", borderRadius: "10px", padding: "0.6rem 1rem", color: PALETTE.textPrimary, fontSize: "0.82rem", fontWeight: 700, cursor: "pointer" }}
                 >
                   🍱 Log as lunch
                 </button>
                 <button
                   onClick={() => onMarkMeal("dinner")}
-                  style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: "#4A7C59", border: "none", borderRadius: "10px", padding: "0.6rem 1rem", color: "#F2E9DC", fontSize: "0.82rem", fontWeight: 700, cursor: "pointer" }}
+                  style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: PALETTE.success, border: "none", borderRadius: "10px", padding: "0.6rem 1rem", color: PALETTE.textPrimary, fontSize: "0.82rem", fontWeight: 700, cursor: "pointer" }}
                 >
                   🍽️ Log as dinner
                 </button>
@@ -2356,7 +2453,7 @@ function CookingMode({ recipe, onClose, onAddToShopping, onMarkMeal }) {
             )}
             <button
               onClick={() => onAddToShopping(recipe)}
-              style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: "#34291C", border: "none", borderRadius: "10px", padding: "0.65rem 1.1rem", color: "#E3A008", fontSize: "0.85rem", fontWeight: 600, cursor: "pointer" }}
+              style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: PALETTE.border, border: "none", borderRadius: "10px", padding: "0.65rem 1.1rem", color: PALETTE.accent, fontSize: "0.85rem", fontWeight: 600, cursor: "pointer" }}
             >
               <ShoppingBasket size={15} /> Add ingredients to list
             </button>
@@ -2366,36 +2463,36 @@ function CookingMode({ recipe, onClose, onAddToShopping, onMarkMeal }) {
 
       {/* Footer nav */}
       {gathering && (
-        <div style={{ padding: "1.25rem", borderTop: "1px solid #34291C" }}>
+        <div style={{ padding: "1.25rem", borderTop: `1px solid ${PALETTE.border}` }}>
           <button
             onClick={() => setStepIdx(0)}
-            style={{ width: "100%", background: "#E3A008", border: "none", borderRadius: "12px", padding: "0.85rem", color: "#1C1815", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", cursor: "pointer" }}
+            style={{ width: "100%", background: PALETTE.accent, border: "none", borderRadius: "12px", padding: "0.85rem", color: PALETTE.bg, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", cursor: "pointer" }}
           >
             <Play size={16} /> Start cooking
           </button>
         </div>
       )}
       {!gathering && !done && (
-        <div style={{ display: "flex", gap: "0.75rem", padding: "1.25rem", borderTop: "1px solid #34291C" }}>
+        <div style={{ display: "flex", gap: "0.75rem", padding: "1.25rem", borderTop: `1px solid ${PALETTE.border}` }}>
           <button
             onClick={() => setStepIdx((s) => Math.max(-1, s - 1))}
-            style={{ flex: 1, background: "#252019", border: "1px solid #34291C", borderRadius: "12px", padding: "0.85rem", color: "#F2E9DC", fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.3rem", cursor: "pointer" }}
+            style={{ flex: 1, background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: "12px", padding: "0.85rem", color: PALETTE.textPrimary, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.3rem", cursor: "pointer" }}
           >
             <ChevronLeft size={16} /> Back
           </button>
           <button
             onClick={() => setStepIdx((s) => s + 1)}
-            style={{ flex: 2, background: "#E3A008", border: "none", borderRadius: "12px", padding: "0.85rem", color: "#1C1815", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.3rem", cursor: "pointer" }}
+            style={{ flex: 2, background: PALETTE.accent, border: "none", borderRadius: "12px", padding: "0.85rem", color: PALETTE.bg, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.3rem", cursor: "pointer" }}
           >
             {stepIdx === total - 1 ? "Finish" : "Next"} <ChevronRight size={16} />
           </button>
         </div>
       )}
       {done && (
-        <div style={{ padding: "1.25rem", borderTop: "1px solid #34291C" }}>
+        <div style={{ padding: "1.25rem", borderTop: `1px solid ${PALETTE.border}` }}>
           <button
             onClick={onClose}
-            style={{ width: "100%", background: "#252019", border: "1px solid #34291C", borderRadius: "12px", padding: "0.85rem", color: "#F2E9DC", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", cursor: "pointer" }}
+            style={{ width: "100%", background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: "12px", padding: "0.85rem", color: PALETTE.textPrimary, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", cursor: "pointer" }}
           >
             <CheckCircle2 size={17} /> Close
           </button>
@@ -2412,24 +2509,42 @@ const NAV_ITEMS = [
   { id: "shop", label: "Shop", icon: ShoppingBasket },
 ];
 
-function DynamicRecipeCard({ recipe, onAddToShopping, onSave, onRemove, onStartCooking, onRemix, saved }) {
+function DynamicRecipeCard({ recipe, onAddToShopping, onSave, onRemove, onStartCooking, onRemix, onOpen, isFavorite, onToggleFavorite, badge, saved }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="card-hover fade-in" style={{ background: "#252019", borderRadius: "14px", marginBottom: "0.5rem", border: "1px solid #34291C", overflow: "hidden" }}>
+    <div className="card-hover fade-in" style={{ background: PALETTE.surface, borderRadius: "14px", marginBottom: "0.5rem", border: `1px solid ${PALETTE.border}`, overflow: "hidden" }}>
       <button
-        onClick={() => setOpen(!open)}
-        style={{ width: "100%", background: "transparent", border: "none", padding: "0.8rem 1rem", display: "flex", alignItems: "center", gap: "0.8rem", cursor: "pointer", color: "#F2E9DC", textAlign: "left" }}
+        onClick={() => {
+          const willOpen = !open;
+          setOpen(willOpen);
+          if (willOpen && onOpen) onOpen(recipe.name);
+        }}
+        style={{ width: "100%", background: "transparent", border: "none", padding: "0.8rem 1rem", display: "flex", alignItems: "center", gap: "0.8rem", cursor: "pointer", color: PALETTE.textPrimary, textAlign: "left" }}
       >
         <RecipePhoto recipe={recipe} />
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 600, fontSize: "0.92rem" }}>{recipe.name}</div>
-          <div style={{ fontSize: "0.75rem", color: "#8A7A63" }}>{recipe.cal}</div>
+          <div style={{ fontWeight: 600, fontSize: "0.92rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+            {recipe.name}
+            {badge}
+          </div>
+          <div style={{ fontSize: "0.75rem", color: PALETTE.textMuted }}>{recipe.cal}</div>
         </div>
-        <ChevronDown size={18} color="#8A7A63" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 0.2s", flexShrink: 0 }} />
+        {onToggleFavorite && (
+          <span
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleFavorite(recipe.name);
+            }}
+            style={{ display: "flex", padding: "0.2rem", flexShrink: 0 }}
+          >
+            <Star size={16} color={isFavorite ? PALETTE.accent : PALETTE.textMutedBrown} fill={isFavorite ? PALETTE.accent : "none"} />
+          </span>
+        )}
+        <ChevronDown size={18} color={PALETTE.textMuted} style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 0.2s", flexShrink: 0 }} />
       </button>
       {open && (
         <div className="fade-in" style={{ padding: "0 1rem 1rem" }}>
-          <ol style={{ margin: 0, padding: "0 0 0.75rem 1.1rem", fontSize: "0.85rem", color: "#C9BBA3", lineHeight: 1.6 }}>
+          <ol style={{ margin: 0, padding: "0 0 0.75rem 1.1rem", fontSize: "0.85rem", color: PALETTE.textSecondary, lineHeight: 1.6 }}>
             {(recipe.steps || []).map((s, si) => (
               <li key={si} style={{ marginBottom: "0.3rem" }}>
                 {s}
@@ -2439,20 +2554,20 @@ function DynamicRecipeCard({ recipe, onAddToShopping, onSave, onRemove, onStartC
           <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
             <button
               onClick={() => onStartCooking(recipe)}
-              style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: "#E3A008", border: "none", borderRadius: "8px", padding: "0.5rem 0.8rem", color: "#1C1815", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}
+              style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: PALETTE.accent, border: "none", borderRadius: "8px", padding: "0.5rem 0.8rem", color: PALETTE.bg, fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}
             >
               <Play size={13} /> Start cooking
             </button>
             <button
               onClick={() => onAddToShopping(recipe)}
-              style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: "#34291C", border: "none", borderRadius: "8px", padding: "0.5rem 0.8rem", color: "#E3A008", fontSize: "0.78rem", fontWeight: 600, cursor: "pointer" }}
+              style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: PALETTE.border, border: "none", borderRadius: "8px", padding: "0.5rem 0.8rem", color: PALETTE.accent, fontSize: "0.78rem", fontWeight: 600, cursor: "pointer" }}
             >
               <ShoppingBasket size={14} /> Add ingredients to list
             </button>
             {onSave && (
               <button
                 onClick={() => onSave(recipe)}
-                style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: "#34291C", border: "none", borderRadius: "8px", padding: "0.5rem 0.8rem", color: "#4A7C59", fontSize: "0.78rem", fontWeight: 600, cursor: "pointer" }}
+                style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: PALETTE.border, border: "none", borderRadius: "8px", padding: "0.5rem 0.8rem", color: PALETTE.success, fontSize: "0.78rem", fontWeight: 600, cursor: "pointer" }}
               >
                 <Bookmark size={14} /> Save
               </button>
@@ -2460,7 +2575,7 @@ function DynamicRecipeCard({ recipe, onAddToShopping, onSave, onRemove, onStartC
             {onRemix && (
               <button
                 onClick={() => onRemix(recipe)}
-                style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: "#34291C", border: "none", borderRadius: "8px", padding: "0.5rem 0.8rem", color: "#C97C2C", fontSize: "0.78rem", fontWeight: 600, cursor: "pointer" }}
+                style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: PALETTE.border, border: "none", borderRadius: "8px", padding: "0.5rem 0.8rem", color: PALETTE.accent2, fontSize: "0.78rem", fontWeight: 600, cursor: "pointer" }}
               >
                 <Shuffle size={13} /> Remix
               </button>
@@ -2468,7 +2583,7 @@ function DynamicRecipeCard({ recipe, onAddToShopping, onSave, onRemove, onStartC
             {onRemove && (
               <button
                 onClick={() => onRemove(recipe.name)}
-                style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: "transparent", border: "1px solid #4A3E2C", borderRadius: "8px", padding: "0.5rem 0.8rem", color: "#8A7A63", fontSize: "0.78rem", fontWeight: 600, cursor: "pointer" }}
+                style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: "transparent", border: `1px solid ${PALETTE.borderLight}`, borderRadius: "8px", padding: "0.5rem 0.8rem", color: PALETTE.textMuted, fontSize: "0.78rem", fontWeight: 600, cursor: "pointer" }}
               >
                 <X size={14} /> Remove
               </button>
@@ -2486,7 +2601,6 @@ function BulkTiffin() {
   const [weights, setWeights] = useState([]);
   const [weightInput, setWeightInput] = useState("");
   const [shopping, setShopping] = useState(SHOPPING_DEFAULT.map((item) => ({ item, checked: false })));
-  const [openRecipe, setOpenRecipe] = useState(null);
   const [loaded, setLoaded] = useState(false);
   const [toast, setToast] = useState("");
   const [streakData, setStreakData] = useState({ streak: 0, lastActiveDate: null, freezeAvailable: true, lastMilestone: 0, bestStreak: 0 });
@@ -2529,8 +2643,31 @@ function BulkTiffin() {
   const [storageEstimate, setStorageEstimate] = useState(null);
   const [importError, setImportError] = useState("");
   const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const [notifyPermission, setNotifyPermission] = useState(typeof Notification !== "undefined" ? Notification.permission : "unsupported");
+  const [notifiedToday, setNotifiedToday] = useState([]);
   const [clockTick, setClockTick] = useState(0);
   const importFileRef = useRef(null);
+  const touchStartX = useRef(null);
+  const touchStartY = useRef(null);
+
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e) => {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    const dy = e.changedTouches[0].clientY - touchStartY.current;
+    touchStartX.current = null;
+    // Only treat as a tab-switch swipe if it's clearly horizontal and long enough to be
+    // intentional — otherwise normal vertical scrolling would keep flipping tabs.
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      const idx = NAV_ITEMS.findIndex((i) => i.id === tab);
+      if (dx < 0 && idx < NAV_ITEMS.length - 1) setTab(NAV_ITEMS[idx + 1].id);
+      else if (dx > 0 && idx > 0) setTab(NAV_ITEMS[idx - 1].id);
+    }
+  };
   const [proteinTarget, setProteinTarget] = useState(PROTEIN_TARGET);
   const [showSettings, setShowSettings] = useState(false);
   const [calorieTargetInput, setCalorieTargetInput] = useState("");
@@ -2546,6 +2683,11 @@ function BulkTiffin() {
   const [showBrowseLibrary, setShowBrowseLibrary] = useState(false);
   const [shoppingInput, setShoppingInput] = useState("");
   const [recipeFilter, setRecipeFilter] = useState("all");
+  const [recipeSlotFilter, setRecipeSlotFilter] = useState("all");
+  const [recipeDietFilter, setRecipeDietFilter] = useState("all");
+  const [recipeSort, setRecipeSort] = useState("default");
+  const [recipeListSearch, setRecipeListSearch] = useState("");
+  const [favorites, setFavorites] = useState([]);
   const [dateKey, setDateKey] = useState(todayKey());
   const didMountRef = useRef(false);
   const [taskOverrides, setTaskOverrides] = useState({});
@@ -2589,6 +2731,7 @@ function BulkTiffin() {
       } catch (e) {}
       setDailyTasks(todayData.tasks || {});
       setExtraItems(migrateExtraItems(todayData));
+      setNotifiedToday(todayData.notifiedToday || []);
 
       try {
         const h = await window.storage.get("history", false);
@@ -2667,6 +2810,10 @@ function BulkTiffin() {
         if (gr) setDesiredGainRate(JSON.parse(gr.value));
       } catch (e) {}
       try {
+        const fv = await window.storage.get("favorite-recipes", false);
+        if (fv) setFavorites(JSON.parse(fv.value));
+      } catch (e) {}
+      try {
         const granted = await window.storage.requestPersistence();
         setPersistenceGranted(granted);
       } catch (e) {}
@@ -2734,13 +2881,14 @@ function BulkTiffin() {
       } catch (e) {}
       setDailyTasks(todayData.tasks || {});
       setExtraItems(migrateExtraItems(todayData));
+      setNotifiedToday(todayData.notifiedToday || []);
       showToast("New day — dabba reset 🍱");
     })();
   }, [dateKey]);
 
   const persistDaily = async (tasks, items) => {
     try {
-      await window.storage.set(`daily:${key}`, JSON.stringify({ tasks, extraItems: items }), false);
+      await window.storage.set(`daily:${key}`, JSON.stringify({ tasks, extraItems: items, notifiedToday }), false);
     } catch (e) {
       showToast("Couldn't save — try again");
     }
@@ -2786,6 +2934,11 @@ function BulkTiffin() {
   const toggleTask = useCallback(
     async (id) => {
       const nowDone = !dailyTasks[id];
+      if (nowDone && navigator.vibrate) {
+        try {
+          navigator.vibrate(10);
+        } catch (e) {}
+      }
       const updated = { ...dailyTasks, [id]: nowDone };
       setDailyTasks(updated);
       await persistDaily(updated, extraItems);
@@ -2930,6 +3083,20 @@ function BulkTiffin() {
       } catch (e) {
         showToast("Couldn't copy — try again");
       }
+    }
+  };
+
+  const copyShoppingList = async (items) => {
+    if (!items.length) {
+      showToast("Nothing to copy");
+      return;
+    }
+    const text = `Shopping list — Today's Dabba\n\n${items.map((s) => `• ${s.item}`).join("\n")}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast("List copied");
+    } catch (e) {
+      showToast("Couldn't copy — try again");
     }
   };
 
@@ -3582,6 +3749,31 @@ function BulkTiffin() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dailyTasks, clockTick]);
 
+  const requestNotifications = async () => {
+    if (typeof Notification === "undefined") {
+      showToast("Notifications aren't supported here");
+      return;
+    }
+    try {
+      const perm = await Notification.requestPermission();
+      setNotifyPermission(perm);
+      if (perm === "granted") showToast("Reminders enabled");
+      else if (perm === "denied") showToast("Reminders blocked — enable in phone Settings if you change your mind");
+    } catch (e) {
+      showToast("Couldn't enable reminders — try again");
+    }
+  };
+
+  const markNotified = async (taskId) => {
+    const updated = [...notifiedToday, taskId];
+    setNotifiedToday(updated);
+    try {
+      const raw = await window.storage.get(`daily:${key}`, false);
+      const current = raw ? JSON.parse(raw.value) : { tasks: dailyTasks, extraItems };
+      await window.storage.set(`daily:${key}`, JSON.stringify({ ...current, notifiedToday: updated }), false);
+    } catch (e) {}
+  };
+
   // Sync the home-screen app icon badge with how many tasks are overdue — a gentle,
   // non-naggy nudge that doesn't require notification permission or a backend.
   useEffect(() => {
@@ -3592,6 +3784,30 @@ function BulkTiffin() {
     } catch (e) {}
   }, [overdueTaskIds]);
 
+  // Actually fire a notification the first time each task becomes overdue (if permission
+  // is granted) — previously reminderHour only fed the badge/pulse and never triggered
+  // a real notification at all.
+  useEffect(() => {
+    if (notifyPermission !== "granted" || !loaded) return;
+    const toNotify = overdueTaskIds.filter((id) => !notifiedToday.includes(id));
+    if (!toNotify.length) return;
+    (async () => {
+      for (const id of toNotify) {
+        const task = TASKS.find((t) => t.id === id);
+        if (!task) continue;
+        try {
+          if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+            const reg = await navigator.serviceWorker.ready;
+            reg.showNotification("Today's Dabba", { body: `${task.label} is still unchecked — ${task.detail}`, icon: "icon-192.png", tag: `reminder-${id}-${key}` });
+          } else if (typeof Notification !== "undefined") {
+            new Notification("Today's Dabba", { body: `${task.label} is still unchecked — ${task.detail}` });
+          }
+        } catch (e) {}
+        await markNotified(id);
+      }
+    })();
+  }, [overdueTaskIds, notifyPermission, loaded]);
+
   const mealCalories = TASKS.reduce((sum, t) => sum + (dailyTasks[t.id] ? taskKcal(t) : 0), 0);
   const totalCalories = mealCalories + extraCal;
   const calPct = Math.min(100, Math.round((totalCalories / calorieTarget) * 100));
@@ -3599,6 +3815,9 @@ function BulkTiffin() {
   const mealProtein = TASKS.reduce((sum, t) => sum + (dailyTasks[t.id] ? t.protein : 0), 0);
   const totalProtein = mealProtein + extraProtein;
   const proteinPct = Math.min(100, Math.round((totalProtein / proteinTarget) * 100));
+
+  const totalCarbs = TASKS.reduce((sum, t) => sum + (dailyTasks[t.id] ? t.carbs : 0), 0);
+  const totalFat = TASKS.reduce((sum, t) => sum + (dailyTasks[t.id] ? t.fat : 0), 0);
 
   const projection = useMemo(() => {
     if (!goalWeight || weeklyRate === null || parseFloat(weeklyRate) <= 0) return null;
@@ -3733,6 +3952,43 @@ function BulkTiffin() {
     return stalest;
   }, [recipeOpens]);
 
+  const toggleFavorite = async (name) => {
+    const updated = favorites.includes(name) ? favorites.filter((f) => f !== name) : [...favorites, name];
+    setFavorites(updated);
+    try {
+      await window.storage.set("favorite-recipes", JSON.stringify(updated), false);
+    } catch (e) {}
+  };
+
+  // The unified recipe library: built-in + saved recipes, combined, filtered, and sorted.
+  // This is the "biggest menu" view — everything you have local access to in one place.
+  const isSavedRecipe = (name) => savedRecipes.some((r) => r.name === name);
+  const libraryRecipes = useMemo(() => {
+    let list = [...RECIPES, ...savedRecipes];
+
+    if (recipeListSearch.trim()) {
+      const q = recipeListSearch.trim().toLowerCase();
+      list = list.filter((r) => r.name.toLowerCase().includes(q));
+    }
+    if (recipeFilter !== "all") list = list.filter((r) => r.category === recipeFilter);
+    if (recipeSlotFilter !== "all") list = list.filter((r) => (r.slots || []).includes(recipeSlotFilter));
+    if (recipeDietFilter !== "all") list = list.filter((r) => inferDiet(r) === recipeDietFilter);
+
+    list = [...list];
+    if (recipeSort === "az") {
+      list.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (recipeSort === "cal-desc") {
+      list.sort((a, b) => parseCalNumber(b.cal) - parseCalNumber(a.cal));
+    } else if (recipeSort === "cal-asc") {
+      list.sort((a, b) => parseCalNumber(a.cal) - parseCalNumber(b.cal));
+    } else if (recipeSort === "tryme") {
+      list.sort((a, b) => (recipeOpens[a.name] || 0) - (recipeOpens[b.name] || 0));
+    } else if (recipeSort === "favorites") {
+      list.sort((a, b) => (favorites.includes(b.name) ? 1 : 0) - (favorites.includes(a.name) ? 1 : 0));
+    }
+    return list;
+  }, [savedRecipes, recipeListSearch, recipeFilter, recipeSlotFilter, recipeDietFilter, recipeSort, recipeOpens, favorites]);
+
   if (!loaded) {
     return (
       <div
@@ -3747,17 +4003,18 @@ function BulkTiffin() {
         }}
       >
         <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,600;1,500&family=Manrope:wght@500&display=swap');
+          @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,600;1,500&display=swap');
+          @import url('https://api.fontshare.com/v2/css?f[]=satoshi@500&display=swap');
           @keyframes dabbaSpin { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
           @keyframes dotPulse { 0%, 80%, 100% { opacity: 0.25; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1); } }
           .load-dot { animation: dotPulse 1.2s ease-in-out infinite; }
         `}</style>
         <Dabba3D size={92} />
-        <div style={{ color: "#F2E9DC", fontFamily: "'Fraunces', serif", fontStyle: "italic", fontSize: "0.95rem" }}>Packing your dabba</div>
+        <div style={{ color: PALETTE.textPrimary, fontFamily: "'Fraunces', serif", fontStyle: "italic", fontSize: "0.95rem" }}>Packing your dabba</div>
         <div style={{ display: "flex", gap: "0.3rem" }}>
-          <span className="load-dot" style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#E3A008", animationDelay: "0s" }} />
-          <span className="load-dot" style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#E3A008", animationDelay: "0.15s" }} />
-          <span className="load-dot" style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#E3A008", animationDelay: "0.3s" }} />
+          <span className="load-dot" style={{ width: "6px", height: "6px", borderRadius: "50%", background: PALETTE.accent, animationDelay: "0s" }} />
+          <span className="load-dot" style={{ width: "6px", height: "6px", borderRadius: "50%", background: PALETTE.accent, animationDelay: "0.15s" }} />
+          <span className="load-dot" style={{ width: "6px", height: "6px", borderRadius: "50%", background: PALETTE.accent, animationDelay: "0.3s" }} />
         </div>
       </div>
     );
@@ -3768,15 +4025,16 @@ function BulkTiffin() {
       style={{
         minHeight: "100vh",
         background: "radial-gradient(ellipse 120% 60% at 20% -10%, #2E2413 0%, transparent 55%), radial-gradient(ellipse 100% 50% at 100% 10%, #24352C 0%, transparent 50%), #1C1815",
-        color: "#F2E9DC",
-        fontFamily: "'Manrope', sans-serif",
+        color: PALETTE.textPrimary,
+        fontFamily: "'Satoshi', sans-serif",
         paddingBottom: "5.5rem",
         position: "relative",
         overflow: "hidden",
       }}
     >
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Manrope:wght@400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&display=swap');
+        @import url('https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap');
         * { box-sizing: border-box; }
         body { margin: 0; }
         .dot-texture {
@@ -3830,7 +4088,7 @@ function BulkTiffin() {
           top: 6px;
           width: 3px;
           height: 12px;
-          background: #F2E9DC;
+          background: ${PALETTE.textPrimary};
           border-radius: 2px;
           opacity: 0;
           animation: steamRise 2.4s ease-in-out infinite;
@@ -3864,9 +4122,9 @@ function BulkTiffin() {
 
       {/* Decorative background layers */}
       <div className="dot-texture" />
-      <div className="bg-blob" style={{ top: "-80px", left: "-60px", width: "260px", height: "260px", background: "#E3A008", opacity: 0.08 }} />
-      <div className="bg-blob" style={{ top: "30%", right: "-90px", width: "220px", height: "220px", background: "#4A7C59", opacity: 0.09 }} />
-      <div className="bg-blob" style={{ bottom: "10%", left: "-70px", width: "200px", height: "200px", background: "#C97C2C", opacity: 0.07 }} />
+      <div className="bg-blob" style={{ top: "-80px", left: "-60px", width: "260px", height: "260px", background: PALETTE.accent, opacity: 0.08 }} />
+      <div className="bg-blob" style={{ top: "30%", right: "-90px", width: "220px", height: "220px", background: PALETTE.success, opacity: 0.09 }} />
+      <div className="bg-blob" style={{ bottom: "10%", left: "-70px", width: "200px", height: "200px", background: PALETTE.accent2, opacity: 0.07 }} />
 
       {/* Ambient floating particles */}
       {particles.map((p) => (
@@ -3902,14 +4160,14 @@ function BulkTiffin() {
           <div
             className="pop-in"
             onClick={(e) => e.stopPropagation()}
-            style={{ background: "#211C15", border: "1px solid #34291C", borderRadius: "18px", padding: "1.25rem", width: "100%", maxWidth: "320px" }}
+            style={{ background: "#211C15", border: `1px solid ${PALETTE.border}`, borderRadius: "18px", padding: "1.25rem", width: "100%", maxWidth: "320px" }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.9rem" }}>
               <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: "1.05rem" }}>
                 {new Date(selectedDay + "T00:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
               </div>
               <button onClick={() => setSelectedDay(null)} style={{ background: "transparent", border: "none", cursor: "pointer" }}>
-                <X size={16} color="#8A7A63" />
+                <X size={16} color={PALETTE.textMuted} />
               </button>
             </div>
             <div style={{ display: "flex", gap: "1.25rem" }}>
@@ -3917,15 +4175,15 @@ function BulkTiffin() {
                 <div style={{ fontSize: "1.3rem", fontWeight: 700, fontFamily: "'Fraunces', serif" }}>
                   {history[selectedDay].completed}/{history[selectedDay].total}
                 </div>
-                <div style={{ fontSize: "0.68rem", color: "#8A7A63" }}>tiers packed</div>
+                <div style={{ fontSize: "0.68rem", color: PALETTE.textMuted }}>tiers packed</div>
               </div>
               <div>
                 <div style={{ fontSize: "1.3rem", fontWeight: 700, fontFamily: "'Fraunces', serif" }}>{history[selectedDay].kcal}</div>
-                <div style={{ fontSize: "0.68rem", color: "#8A7A63" }}>kcal</div>
+                <div style={{ fontSize: "0.68rem", color: PALETTE.textMuted }}>kcal</div>
               </div>
               <div>
                 <div style={{ fontSize: "1.3rem", fontWeight: 700, fontFamily: "'Fraunces', serif" }}>{history[selectedDay].protein || 0}g</div>
-                <div style={{ fontSize: "0.68rem", color: "#8A7A63" }}>protein</div>
+                <div style={{ fontSize: "0.68rem", color: PALETTE.textMuted }}>protein</div>
               </div>
             </div>
           </div>
@@ -3941,16 +4199,16 @@ function BulkTiffin() {
           <div
             className="pop-in"
             onClick={(e) => e.stopPropagation()}
-            style={{ background: "#211C15", borderRadius: "20px 20px 0 0", padding: "1.5rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom))", width: "100%", maxWidth: "480px", margin: "0 auto", border: "1px solid #34291C", borderBottom: "none", maxHeight: "85vh", overflowY: "auto" }}
+            style={{ background: "#211C15", borderRadius: "20px 20px 0 0", padding: "1.5rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom))", width: "100%", maxWidth: "480px", margin: "0 auto", border: `1px solid ${PALETTE.border}`, borderBottom: "none", maxHeight: "85vh", overflowY: "auto" }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
               <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: "1.1rem" }}>Remix recipe</div>
               <button onClick={() => setRemixOpen(false)} style={{ background: "transparent", border: "none", cursor: "pointer" }}>
-                <X size={18} color="#8A7A63" />
+                <X size={18} color={PALETTE.textMuted} />
               </button>
             </div>
-            <div style={{ fontSize: "0.8rem", color: "#8A7A63", marginBottom: "0.3rem" }}>{remixTarget && remixTarget.name}</div>
-            <div style={{ fontSize: "0.68rem", color: "#5C6E58", marginBottom: "1rem" }}>{apiKey ? "Uses your Anthropic API key." : "Needs an API key — add one in ⚙️ Settings."}</div>
+            <div style={{ fontSize: "0.8rem", color: PALETTE.textMuted, marginBottom: "0.3rem" }}>{remixTarget && remixTarget.name}</div>
+            <div style={{ fontSize: "0.68rem", color: PALETTE.textMutedGreen, marginBottom: "1rem" }}>{apiKey ? "Uses your Anthropic API key." : "Needs an API key — add one in ⚙️ Settings."}</div>
 
             {!remixResult && (
               <>
@@ -3960,7 +4218,7 @@ function BulkTiffin() {
                       key={chip}
                       onClick={() => runRemix(chip)}
                       disabled={remixLoading}
-                      style={{ background: "#252019", border: "1px solid #34291C", borderRadius: "999px", padding: "0.4rem 0.75rem", color: "#C9BBA3", fontSize: "0.76rem", fontWeight: 600, cursor: remixLoading ? "default" : "pointer" }}
+                      style={{ background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: "999px", padding: "0.4rem 0.75rem", color: PALETTE.textSecondary, fontSize: "0.76rem", fontWeight: 600, cursor: remixLoading ? "default" : "pointer" }}
                     >
                       {chip}
                     </button>
@@ -3973,18 +4231,18 @@ function BulkTiffin() {
                     onChange={(e) => setRemixInstruction(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && runRemix(remixInstruction)}
                     placeholder="or type your own instruction"
-                    style={{ flex: 1, background: "#1C1815", border: "1px solid #34291C", borderRadius: "8px", padding: "0.6rem 0.8rem", color: "#F2E9DC", fontSize: "0.85rem", outline: "none" }}
+                    style={{ flex: 1, background: PALETTE.bg, border: `1px solid ${PALETTE.border}`, borderRadius: "8px", padding: "0.6rem 0.8rem", color: PALETTE.textPrimary, fontSize: "0.85rem", outline: "none" }}
                   />
                   <button
                     onClick={() => runRemix(remixInstruction)}
                     disabled={remixLoading}
-                    style={{ background: "#C97C2C", border: "none", borderRadius: "8px", padding: "0.6rem 0.9rem", color: "#1C1815", fontWeight: 700, cursor: remixLoading ? "default" : "pointer", display: "flex", alignItems: "center" }}
+                    style={{ background: PALETTE.accent2, border: "none", borderRadius: "8px", padding: "0.6rem 0.9rem", color: PALETTE.bg, fontWeight: 700, cursor: remixLoading ? "default" : "pointer", display: "flex", alignItems: "center" }}
                   >
                     {remixLoading ? <Loader2 size={15} className="spin" /> : <Shuffle size={15} />}
                   </button>
                 </div>
-                {remixError && <div style={{ fontSize: "0.78rem", color: "#C25450" }}>{remixError}</div>}
-                {remixLoading && <div style={{ fontSize: "0.8rem", color: "#8A7A63" }}>Remixing…</div>}
+                {remixError && <div style={{ fontSize: "0.78rem", color: PALETTE.error }}>{remixError}</div>}
+                {remixLoading && <div style={{ fontSize: "0.8rem", color: PALETTE.textMuted }}>Remixing…</div>}
               </>
             )}
 
@@ -3994,10 +4252,10 @@ function BulkTiffin() {
                   <RecipePhoto recipe={remixResult} size={48} />
                   <div>
                     <div style={{ fontWeight: 700, fontSize: "0.95rem" }}>{remixResult.name}</div>
-                    <div style={{ fontSize: "0.78rem", color: "#8A7A63" }}>{remixResult.cal}</div>
+                    <div style={{ fontSize: "0.78rem", color: PALETTE.textMuted }}>{remixResult.cal}</div>
                   </div>
                 </div>
-                <ol style={{ margin: 0, padding: "0 0 0.9rem 1.1rem", fontSize: "0.85rem", color: "#C9BBA3", lineHeight: 1.6 }}>
+                <ol style={{ margin: 0, padding: "0 0 0.9rem 1.1rem", fontSize: "0.85rem", color: PALETTE.textSecondary, lineHeight: 1.6 }}>
                   {remixResult.steps.map((s, si) => (
                     <li key={si} style={{ marginBottom: "0.3rem" }}>
                       {s}
@@ -4010,7 +4268,7 @@ function BulkTiffin() {
                       setCookingRecipe(remixResult);
                       setRemixOpen(false);
                     }}
-                    style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: "#E3A008", border: "none", borderRadius: "8px", padding: "0.55rem 0.85rem", color: "#1C1815", fontSize: "0.8rem", fontWeight: 700, cursor: "pointer" }}
+                    style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: PALETTE.accent, border: "none", borderRadius: "8px", padding: "0.55rem 0.85rem", color: PALETTE.bg, fontSize: "0.8rem", fontWeight: 700, cursor: "pointer" }}
                   >
                     <Play size={13} /> Start cooking
                   </button>
@@ -4019,13 +4277,13 @@ function BulkTiffin() {
                       await saveRecipe(remixResult);
                       setRemixOpen(false);
                     }}
-                    style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: "#34291C", border: "none", borderRadius: "8px", padding: "0.55rem 0.85rem", color: "#4A7C59", fontSize: "0.8rem", fontWeight: 600, cursor: "pointer" }}
+                    style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: PALETTE.border, border: "none", borderRadius: "8px", padding: "0.55rem 0.85rem", color: PALETTE.success, fontSize: "0.8rem", fontWeight: 600, cursor: "pointer" }}
                   >
                     <Bookmark size={13} /> Save
                   </button>
                   <button
                     onClick={() => setRemixResult(null)}
-                    style={{ background: "transparent", border: "none", color: "#8A7A63", fontSize: "0.8rem", cursor: "pointer" }}
+                    style={{ background: "transparent", border: "none", color: PALETTE.textMuted, fontSize: "0.8rem", cursor: "pointer" }}
                   >
                     Try another remix
                   </button>
@@ -4052,7 +4310,7 @@ function BulkTiffin() {
               width: "100%",
               maxWidth: "480px",
               margin: "0 auto",
-              border: "1px solid #34291C",
+              border: `1px solid ${PALETTE.border}`,
               borderBottom: "none",
               maxHeight: "85vh",
               overflowY: "auto",
@@ -4061,48 +4319,72 @@ function BulkTiffin() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
               <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: "1.15rem" }}>Settings</div>
               <button onClick={() => setShowSettings(false)} style={{ background: "transparent", border: "none", cursor: "pointer" }}>
-                <X size={18} color="#8A7A63" />
+                <X size={18} color={PALETTE.textMuted} />
               </button>
             </div>
             <div style={{ marginBottom: "1rem" }}>
-              <label style={{ fontSize: "0.78rem", color: "#8A7A63" }}>Calorie target (kcal/day)</label>
+              <label style={{ fontSize: "0.78rem", color: PALETTE.textMuted }}>Calorie target (kcal/day)</label>
               <input
                 type="number"
                 value={calorieTargetInput}
                 onChange={(e) => setCalorieTargetInput(e.target.value)}
-                style={{ width: "100%", marginTop: "0.35rem", background: "#1C1815", border: "1px solid #34291C", borderRadius: "10px", padding: "0.7rem 0.9rem", color: "#F2E9DC", fontSize: "0.95rem", outline: "none" }}
+                style={{ width: "100%", marginTop: "0.35rem", background: PALETTE.bg, border: `1px solid ${PALETTE.border}`, borderRadius: "10px", padding: "0.7rem 0.9rem", color: PALETTE.textPrimary, fontSize: "0.95rem", outline: "none" }}
               />
             </div>
             <div style={{ marginBottom: "1.25rem" }}>
-              <label style={{ fontSize: "0.78rem", color: "#8A7A63" }}>Protein target (g/day)</label>
+              <label style={{ fontSize: "0.78rem", color: PALETTE.textMuted }}>Protein target (g/day)</label>
               <input
                 type="number"
                 value={proteinTargetInput}
                 onChange={(e) => setProteinTargetInput(e.target.value)}
-                style={{ width: "100%", marginTop: "0.35rem", background: "#1C1815", border: "1px solid #34291C", borderRadius: "10px", padding: "0.7rem 0.9rem", color: "#F2E9DC", fontSize: "0.95rem", outline: "none" }}
+                style={{ width: "100%", marginTop: "0.35rem", background: PALETTE.bg, border: `1px solid ${PALETTE.border}`, borderRadius: "10px", padding: "0.7rem 0.9rem", color: PALETTE.textPrimary, fontSize: "0.95rem", outline: "none" }}
               />
             </div>
 
             <div style={{ marginBottom: "1.25rem" }}>
-              <label style={{ fontSize: "0.78rem", color: "#8A7A63" }}>Tiffin tile calories — match what you actually cook</label>
+              <label style={{ fontSize: "0.78rem", color: PALETTE.textMuted }}>Tiffin tile calories — match what you actually cook</label>
               <div style={{ marginTop: "0.5rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                 {TASKS.filter((t) => t.kcal > 0).map((t) => (
                   <div key={t.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem" }}>
-                    <span style={{ fontSize: "0.82rem", color: "#F2E9DC" }}>{t.label}</span>
+                    <span style={{ fontSize: "0.82rem", color: PALETTE.textPrimary }}>{t.label}</span>
                     <input
                       type="number"
                       value={taskKcalInputs[t.id] ?? ""}
                       onChange={(e) => setTaskKcalInputs((prev) => ({ ...prev, [t.id]: e.target.value }))}
-                      style={{ width: "90px", background: "#1C1815", border: "1px solid #34291C", borderRadius: "8px", padding: "0.45rem 0.6rem", color: "#F2E9DC", fontSize: "0.85rem", outline: "none", textAlign: "right" }}
+                      style={{ width: "90px", background: PALETTE.bg, border: `1px solid ${PALETTE.border}`, borderRadius: "8px", padding: "0.45rem 0.6rem", color: PALETTE.textPrimary, fontSize: "0.85rem", outline: "none", textAlign: "right" }}
                     />
                   </div>
                 ))}
               </div>
             </div>
 
-            <div style={{ marginBottom: "1.25rem", background: "#1F1A14", borderRadius: "12px", padding: "0.9rem", border: "1px solid #34291C" }}>
-              <label style={{ fontSize: "0.78rem", color: "#8A7A63", fontWeight: 600 }}>Backup & storage</label>
-              <div style={{ fontSize: "0.72rem", color: "#8A7A63", marginTop: "0.35rem", lineHeight: 1.5 }}>
+            <div style={{ marginBottom: "1.25rem", background: PALETTE.surfaceDark, borderRadius: "12px", padding: "0.9rem", border: `1px solid ${PALETTE.border}` }}>
+              <label style={{ fontSize: "0.78rem", color: PALETTE.textMuted, fontWeight: 600 }}>Reminders</label>
+              <div style={{ fontSize: "0.72rem", color: PALETTE.textMuted, marginTop: "0.35rem", lineHeight: 1.5 }}>
+                Get a notification the first time each tiffin tile goes overdue for the day (needs the app open or backgrounded — iOS doesn't allow true background alarms for web apps).
+              </div>
+              <button
+                onClick={requestNotifications}
+                disabled={notifyPermission === "granted"}
+                style={{
+                  marginTop: "0.6rem",
+                  background: notifyPermission === "granted" ? PALETTE.surface : PALETTE.success,
+                  border: notifyPermission === "granted" ? `1px solid ${PALETTE.border}` : "none",
+                  borderRadius: "8px",
+                  padding: "0.5rem 0.9rem",
+                  color: notifyPermission === "granted" ? PALETTE.success : PALETTE.textPrimary,
+                  fontWeight: 700,
+                  fontSize: "0.78rem",
+                  cursor: notifyPermission === "granted" ? "default" : "pointer",
+                }}
+              >
+                {notifyPermission === "granted" ? "✓ Reminders on" : notifyPermission === "denied" ? "Blocked — check phone Settings" : "Enable reminders"}
+              </button>
+            </div>
+
+            <div style={{ marginBottom: "1.25rem", background: PALETTE.surfaceDark, borderRadius: "12px", padding: "0.9rem", border: `1px solid ${PALETTE.border}` }}>
+              <label style={{ fontSize: "0.78rem", color: PALETTE.textMuted, fontWeight: 600 }}>Backup & storage</label>
+              <div style={{ fontSize: "0.72rem", color: PALETTE.textMuted, marginTop: "0.35rem", lineHeight: 1.5 }}>
                 Your data lives only on this device. Since browsers can occasionally clear storage, back it up as a file every so often — especially before clearing Safari history or getting a new phone.
                 <br />
                 {lastBackupAt ? `Last backup: ${new Date(lastBackupAt).toLocaleDateString()}` : "No backup taken yet"}
@@ -4117,45 +4399,45 @@ function BulkTiffin() {
               <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.6rem" }}>
                 <button
                   onClick={exportBackup}
-                  style={{ flex: 1, background: "#4A7C59", border: "none", borderRadius: "8px", padding: "0.55rem", color: "#F2E9DC", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer" }}
+                  style={{ flex: 1, background: PALETTE.success, border: "none", borderRadius: "8px", padding: "0.55rem", color: PALETTE.textPrimary, fontWeight: 700, fontSize: "0.78rem", cursor: "pointer" }}
                 >
                   Export backup
                 </button>
                 <button
                   onClick={() => importFileRef.current && importFileRef.current.click()}
-                  style={{ flex: 1, background: "#34291C", border: "none", borderRadius: "8px", padding: "0.55rem", color: "#E3A008", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer" }}
+                  style={{ flex: 1, background: PALETTE.border, border: "none", borderRadius: "8px", padding: "0.55rem", color: PALETTE.accent, fontWeight: 700, fontSize: "0.78rem", cursor: "pointer" }}
                 >
                   Import backup
                 </button>
                 <input ref={importFileRef} type="file" accept="application/json,.json" onChange={handleImportFile} style={{ display: "none" }} />
               </div>
-              {importError && <div style={{ fontSize: "0.7rem", color: "#C25450", marginTop: "0.5rem" }}>{importError}</div>}
+              {importError && <div style={{ fontSize: "0.7rem", color: PALETTE.error, marginTop: "0.5rem" }}>{importError}</div>}
             </div>
 
             <div style={{ marginBottom: "1.25rem" }}>
-              <label style={{ fontSize: "0.78rem", color: "#8A7A63" }}>Anthropic API key — enables recipe search, remix, and photo logging</label>
+              <label style={{ fontSize: "0.78rem", color: PALETTE.textMuted }}>Anthropic API key — enables recipe search, remix, and photo logging</label>
               <input
                 type="password"
                 value={apiKeyInput}
                 onChange={(e) => setApiKeyInput(e.target.value)}
                 placeholder={apiKey ? "•••••••••••••••••••• (saved)" : "sk-ant-..."}
-                style={{ width: "100%", marginTop: "0.35rem", background: "#1C1815", border: "1px solid #34291C", borderRadius: "10px", padding: "0.7rem 0.9rem", color: "#F2E9DC", fontSize: "0.85rem", outline: "none" }}
+                style={{ width: "100%", marginTop: "0.35rem", background: PALETTE.bg, border: `1px solid ${PALETTE.border}`, borderRadius: "10px", padding: "0.7rem 0.9rem", color: PALETTE.textPrimary, fontSize: "0.85rem", outline: "none" }}
               />
               <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
                 <button
                   onClick={testApiKey}
-                  style={{ background: "#34291C", border: "none", borderRadius: "8px", padding: "0.45rem 0.8rem", color: "#C9BBA3", fontSize: "0.75rem", fontWeight: 600, cursor: "pointer" }}
+                  style={{ background: PALETTE.border, border: "none", borderRadius: "8px", padding: "0.45rem 0.8rem", color: PALETTE.textSecondary, fontSize: "0.75rem", fontWeight: 600, cursor: "pointer" }}
                 >
                   {testKeyStatus === "testing" ? "Testing…" : "Test key"}
                 </button>
                 {testKeyStatus && testKeyStatus !== "testing" && (
-                  <div style={{ fontSize: "0.72rem", color: testKeyStatus.startsWith("✓") ? "#4A7C59" : "#C25450", alignSelf: "center" }}>{testKeyStatus}</div>
+                  <div style={{ fontSize: "0.72rem", color: testKeyStatus.startsWith("✓") ? PALETTE.success : PALETTE.error, alignSelf: "center" }}>{testKeyStatus}</div>
                 )}
               </div>
-              <div style={{ fontSize: "0.68rem", color: "#5C6E58", marginTop: "0.4rem" }}>
+              <div style={{ fontSize: "0.68rem", color: PALETTE.textMutedGreen, marginTop: "0.4rem" }}>
                 Get one at console.anthropic.com → API Keys. Stored only on this device.
                 {apiKey && (
-                  <button onClick={clearApiKey} style={{ background: "transparent", border: "none", color: "#C25450", fontSize: "0.68rem", marginLeft: "0.5rem", cursor: "pointer", padding: 0 }}>
+                  <button onClick={clearApiKey} style={{ background: "transparent", border: "none", color: PALETTE.error, fontSize: "0.68rem", marginLeft: "0.5rem", cursor: "pointer", padding: 0 }}>
                     Remove key
                   </button>
                 )}
@@ -4164,7 +4446,7 @@ function BulkTiffin() {
 
             <button
               onClick={saveTargets}
-              style={{ width: "100%", background: "#4A7C59", border: "none", borderRadius: "12px", padding: "0.8rem", color: "#F2E9DC", fontWeight: 700, fontSize: "0.9rem", cursor: "pointer" }}
+              style={{ width: "100%", background: PALETTE.success, border: "none", borderRadius: "12px", padding: "0.8rem", color: PALETTE.textPrimary, fontWeight: 700, fontSize: "0.9rem", cursor: "pointer" }}
             >
               Save settings
             </button>
@@ -4184,7 +4466,7 @@ function BulkTiffin() {
                 width: "8px",
                 height: "8px",
                 borderRadius: i % 2 === 0 ? "50%" : "2px",
-                background: ["#E3A008", "#C97C2C", "#4A7C59", "#F2E9DC"][i % 4],
+                background: [PALETTE.accent, PALETTE.accent2, PALETTE.success, PALETTE.textPrimary][i % 4],
                 animationDuration: `${1.6 + Math.random() * 1.2}s`,
                 animationDelay: `${Math.random() * 0.4}s`,
               }}
@@ -4193,19 +4475,19 @@ function BulkTiffin() {
           <div
             className="pop-in"
             style={{
-              background: "#252019",
-              border: "1px solid #E3A008",
+              background: PALETTE.surface,
+              border: `1px solid ${PALETTE.accent}`,
               borderRadius: "20px",
               padding: "1.5rem 2rem",
               textAlign: "center",
               boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
             }}
           >
-            <PartyPopper size={32} color="#E3A008" style={{ marginBottom: "0.5rem" }} />
+            <PartyPopper size={32} color={PALETTE.accent} style={{ marginBottom: "0.5rem" }} />
             <div style={{ fontFamily: "'Fraunces', serif", fontSize: "1.4rem", fontWeight: 700 }}>
               {celebration === "shop" ? "List cleared! 🛒" : `${celebration}-day streak!`}
             </div>
-            <div style={{ fontSize: "0.85rem", color: "#C9BBA3", marginTop: "0.25rem" }}>
+            <div style={{ fontSize: "0.85rem", color: PALETTE.textSecondary, marginTop: "0.25rem" }}>
               {celebration === "shop" ? "Everything's picked up — ready to cook." : "You're building a real habit here."}
             </div>
           </div>
@@ -4213,10 +4495,10 @@ function BulkTiffin() {
       )}
 
       {/* Sticky header */}
-      <div style={{ position: "sticky", top: 0, zIndex: 20, background: "rgba(28,24,21,0.92)", backdropFilter: "blur(6px)", borderBottom: "1px solid #34291C", paddingTop: "calc(env(safe-area-inset-top) + 6px)" }}>
+      <div style={{ position: "sticky", top: 0, zIndex: 20, background: "rgba(28,24,21,0.92)", backdropFilter: "blur(6px)", borderBottom: `1px solid ${PALETTE.border}`, paddingTop: "calc(env(safe-area-inset-top) + 6px)" }}>
         <div style={{ padding: "1.1rem 1.25rem", maxWidth: "480px", margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <div style={{ fontSize: "0.66rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#C97C2C", fontWeight: 600 }}>
+            <div style={{ fontSize: "0.66rem", letterSpacing: "0.14em", textTransform: "uppercase", color: PALETTE.accent2, fontWeight: 600 }}>
               {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
             </div>
             <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "1.4rem" }}>Today's Dabba 🍱</div>
@@ -4234,24 +4516,24 @@ function BulkTiffin() {
                 setApiKeyInput(apiKey);
                 setShowSettings(true);
               }}
-              style={{ background: "#252019", border: "1px solid #34291C", borderRadius: "999px", width: "34px", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+              style={{ background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: "999px", width: "34px", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
             >
-              <Settings size={15} color="#8A7A63" />
+              <Settings size={15} color={PALETTE.textMuted} />
             </button>
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
                 gap: "0.35rem",
-                background: "#252019",
-                border: "1px solid #34291C",
+                background: PALETTE.surface,
+                border: `1px solid ${PALETTE.border}`,
                 borderRadius: "999px",
                 padding: "0.4rem 0.8rem",
               }}
             >
-              <Flame size={14} color="#E3A008" className="flame-icon" />
+              <Flame size={14} color={PALETTE.accent} className="flame-icon" />
               <span style={{ fontWeight: 700, fontSize: "0.85rem" }}>{streakData.streak}</span>
-              {streakData.freezeAvailable && streakData.streak > 0 && <ShieldCheck size={13} color="#4A7C59" />}
+              {streakData.freezeAvailable && streakData.streak > 0 && <ShieldCheck size={13} color={PALETTE.success} />}
             </div>
           </div>
         </div>
@@ -4275,7 +4557,7 @@ function BulkTiffin() {
               <div style={{ fontSize: "0.8rem", color: "#E8DCC5", lineHeight: 1.5 }}>
                 For safer, permanent storage, add this to your home screen: tap the Share icon in Safari → <strong>Add to Home Screen</strong>.
               </div>
-              <button onClick={dismissInstallBanner} style={{ marginTop: "0.4rem", background: "transparent", border: "none", color: "#C97C2C", fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", padding: 0 }}>
+              <button onClick={dismissInstallBanner} style={{ marginTop: "0.4rem", background: "transparent", border: "none", color: PALETTE.accent2, fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", padding: 0 }}>
                 Got it
               </button>
             </div>
@@ -4284,7 +4566,7 @@ function BulkTiffin() {
       )}
 
       {/* Page content */}
-      <div key={tab} className="page-enter" style={{ maxWidth: "480px", margin: "0 auto", position: "relative", zIndex: 1 }}>
+      <div key={tab} className="page-enter" style={{ maxWidth: "480px", margin: "0 auto", position: "relative", zIndex: 1 }} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
         {tab === "today" && (
           <>
             {/* Mascot hero */}
@@ -4294,7 +4576,7 @@ function BulkTiffin() {
                 <div style={{ fontSize: "0.95rem", fontWeight: 600 }}>
                   {timeGreeting()}, Abhi
                 </div>
-                <div style={{ fontSize: "0.78rem", color: "#8A7A63", marginTop: "0.2rem", maxWidth: "180px", fontFamily: "'Fraunces', serif", fontStyle: "italic" }}>
+                <div style={{ fontSize: "0.78rem", color: PALETTE.textMuted, marginTop: "0.2rem", maxWidth: "180px", fontFamily: "'Fraunces', serif", fontStyle: "italic" }}>
                   {completedCount === 0 && "Let's get today's dabba packed 🍱"}
                   {completedCount > 0 && completedCount < TASKS.length && `${TASKS.length - completedCount} tier${TASKS.length - completedCount > 1 ? "s" : ""} left today`}
                   {completedCount === TASKS.length && "Fully packed — nice work today! 🎉"}
@@ -4307,9 +4589,25 @@ function BulkTiffin() {
 
             {/* Ring dashboard */}
             <div style={{ padding: "1.25rem 1.25rem 0", display: "flex", justifyContent: "space-around" }}>
-              <Ring pct={calPct} color="#E3A008" label="Calories" value={totalCalories} target={calorieTarget} unit=" kcal" />
-              <Ring pct={proteinPct} color="#C97C2C" label="Protein" value={totalProtein} target={proteinTarget} unit="g" />
-              <Ring pct={Math.round((completedCount / TASKS.length) * 100)} color="#4A7C59" label="Tiers" value={completedCount} target={TASKS.length} unit="" />
+              <Ring pct={calPct} color={PALETTE.accent} label="Calories" value={totalCalories} target={calorieTarget} unit=" kcal" />
+              <Ring pct={proteinPct} color={PALETTE.accent2} label="Protein" value={totalProtein} target={proteinTarget} unit="g" />
+              <Ring pct={Math.round((completedCount / TASKS.length) * 100)} color={PALETTE.success} label="Tiers" value={completedCount} target={TASKS.length} unit="" />
+            </div>
+
+            {/* Carb / fat pills */}
+            <div style={{ padding: "0.75rem 1.25rem 0", display: "flex", justifyContent: "center", gap: "0.6rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: "999px", padding: "0.35rem 0.8rem" }}>
+                <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#D9A75C", flexShrink: 0 }} />
+                <span style={{ fontSize: "0.75rem", color: PALETTE.textSecondary }}>
+                  Carbs <strong style={{ color: PALETTE.textPrimary }}>{totalCarbs}g</strong> / {CARB_TARGET}g
+                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: "999px", padding: "0.35rem 0.8rem" }}>
+                <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#C97C9C", flexShrink: 0 }} />
+                <span style={{ fontSize: "0.75rem", color: PALETTE.textSecondary }}>
+                  Fat <strong style={{ color: PALETTE.textPrimary }}>{totalFat}g</strong> / {FAT_TARGET}g
+                </span>
+              </div>
             </div>
 
             {/* What should I eat now */}
@@ -4318,48 +4616,48 @@ function BulkTiffin() {
                 <button
                   onClick={askWhatToEatNow}
                   className="elevated"
-                  style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", background: "#252019", border: "1px solid #34291C", borderRadius: "14px", padding: "0.85rem", color: "#F2E9DC", fontSize: "0.88rem", fontWeight: 600, cursor: "pointer" }}
+                  style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: "14px", padding: "0.85rem", color: PALETTE.textPrimary, fontSize: "0.88rem", fontWeight: 600, cursor: "pointer" }}
                 >
-                  <Lightbulb size={16} color="#E3A008" /> Not sure what to eat? Ask
+                  <Lightbulb size={16} color={PALETTE.accent} /> Not sure what to eat? Ask
                 </button>
               )}
               {nowLoading && (
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", padding: "0.85rem", color: "#8A7A63", fontSize: "0.85rem" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", padding: "0.85rem", color: PALETTE.textMuted, fontSize: "0.85rem" }}>
                   <Loader2 size={16} className="spin" /> Thinking about what's around you…
                 </div>
               )}
-              {nowError && <div style={{ fontSize: "0.78rem", color: "#C25450", textAlign: "center" }}>{nowError}</div>}
-              {nowNotice && <div style={{ fontSize: "0.72rem", color: "#8A7A63", textAlign: "center" }}>{nowNotice}</div>}
+              {nowError && <div style={{ fontSize: "0.78rem", color: PALETTE.error, textAlign: "center" }}>{nowError}</div>}
+              {nowNotice && <div style={{ fontSize: "0.72rem", color: PALETTE.textMuted, textAlign: "center" }}>{nowNotice}</div>}
               {nowResult && (
-                <div className="pop-in elevated" style={{ background: "#252019", border: "1px solid #34291C", borderRadius: "14px", padding: "1rem" }}>
+                <div className="pop-in elevated" style={{ background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: "14px", padding: "1rem" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.3rem" }}>
-                    <Lightbulb size={15} color="#E3A008" />
+                    <Lightbulb size={15} color={PALETTE.accent} />
                     <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: "1rem" }}>{nowResult.name}</div>
                   </div>
-                  <div style={{ fontSize: "0.8rem", color: "#C9BBA3", marginBottom: "0.3rem" }}>{nowResult.why}</div>
-                  <div style={{ fontSize: "0.78rem", color: "#8A7A63", marginBottom: "0.7rem" }}>~{nowResult.kcal} kcal</div>
+                  <div style={{ fontSize: "0.8rem", color: PALETTE.textSecondary, marginBottom: "0.3rem" }}>{nowResult.why}</div>
+                  <div style={{ fontSize: "0.78rem", color: PALETTE.textMuted, marginBottom: "0.7rem" }}>~{nowResult.kcal} kcal</div>
                   <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
                     <button
                       onClick={addNowResultToToday}
-                      style={{ display: "flex", alignItems: "center", gap: "0.35rem", background: "#4A7C59", border: "none", borderRadius: "8px", padding: "0.5rem 0.8rem", color: "#F2E9DC", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}
+                      style={{ display: "flex", alignItems: "center", gap: "0.35rem", background: PALETTE.success, border: "none", borderRadius: "8px", padding: "0.5rem 0.8rem", color: PALETTE.textPrimary, fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}
                     >
                       <Plus size={13} /> Log it
                     </button>
                     <button
                       onClick={() => jumpToRecipeSearch(nowResult.name)}
-                      style={{ display: "flex", alignItems: "center", gap: "0.35rem", background: "#34291C", border: "none", borderRadius: "8px", padding: "0.5rem 0.8rem", color: "#E3A008", fontSize: "0.78rem", fontWeight: 600, cursor: "pointer" }}
+                      style={{ display: "flex", alignItems: "center", gap: "0.35rem", background: PALETTE.border, border: "none", borderRadius: "8px", padding: "0.5rem 0.8rem", color: PALETTE.accent, fontSize: "0.78rem", fontWeight: 600, cursor: "pointer" }}
                     >
                       <ChefHat size={13} /> Get full recipe
                     </button>
                     <button
                       onClick={askWhatToEatNow}
-                      style={{ display: "flex", alignItems: "center", gap: "0.35rem", background: "transparent", border: "1px solid #34291C", borderRadius: "8px", padding: "0.5rem 0.8rem", color: "#8A7A63", fontSize: "0.78rem", fontWeight: 600, cursor: "pointer" }}
+                      style={{ display: "flex", alignItems: "center", gap: "0.35rem", background: "transparent", border: `1px solid ${PALETTE.border}`, borderRadius: "8px", padding: "0.5rem 0.8rem", color: PALETTE.textMuted, fontSize: "0.78rem", fontWeight: 600, cursor: "pointer" }}
                     >
                       <Shuffle size={12} /> Suggest another
                     </button>
                     <button
                       onClick={() => setNowResult(null)}
-                      style={{ background: "transparent", border: "none", color: "#8A7A63", fontSize: "0.78rem", cursor: "pointer" }}
+                      style={{ background: "transparent", border: "none", color: PALETTE.textMuted, fontSize: "0.78rem", cursor: "pointer" }}
                     >
                       Dismiss
                     </button>
@@ -4377,20 +4675,20 @@ function BulkTiffin() {
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  background: "#252019",
-                  border: "1px solid #34291C",
+                  background: PALETTE.surface,
+                  border: `1px solid ${PALETTE.border}`,
                   borderRadius: "14px",
                   padding: "0.8rem 1rem",
-                  color: "#F2E9DC",
+                  color: PALETTE.textPrimary,
                   cursor: "pointer",
                 }}
               >
                 <span style={{ fontSize: "0.85rem", fontWeight: 600 }}>Quick-add extra food</span>
-                <ChevronDown size={16} color="#8A7A63" style={{ transform: showPortions ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+                <ChevronDown size={16} color={PALETTE.textMuted} style={{ transform: showPortions ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
               </button>
               {showPortions && (
-                <div className="fade-in" style={{ background: "#1F1A14", borderRadius: "14px", padding: "0.9rem", marginTop: "0.4rem", border: "1px solid #34291C" }}>
-                  <div style={{ fontSize: "0.7rem", color: "#8A7A63", marginBottom: "0.5rem" }}>Ate something specific? Search it — chain, size, and extras (e.g. "Tim Hortons medium iced coffee, extra cream"):</div>
+                <div className="fade-in" style={{ background: PALETTE.surfaceDark, borderRadius: "14px", padding: "0.9rem", marginTop: "0.4rem", border: `1px solid ${PALETTE.border}` }}>
+                  <div style={{ fontSize: "0.7rem", color: PALETTE.textMuted, marginBottom: "0.5rem" }}>Ate something specific? Search it — chain, size, and extras (e.g. "Tim Hortons medium iced coffee, extra cream"):</div>
                   <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.6rem" }}>
                     <input
                       type="text"
@@ -4398,12 +4696,12 @@ function BulkTiffin() {
                       onChange={(e) => setFoodLogQuery(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && searchFoodLog()}
                       placeholder="e.g. McDonald's Big Mac, no cheese"
-                      style={{ flex: 1, background: "#252019", border: "1px solid #34291C", borderRadius: "8px", padding: "0.5rem 0.7rem", color: "#F2E9DC", fontSize: "0.8rem", outline: "none" }}
+                      style={{ flex: 1, background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: "8px", padding: "0.5rem 0.7rem", color: PALETTE.textPrimary, fontSize: "0.8rem", outline: "none" }}
                     />
                     <button
                       onClick={searchFoodLog}
                       disabled={foodLogLoading}
-                      style={{ background: "#C97C2C", border: "none", borderRadius: "8px", padding: "0.5rem 0.7rem", color: "#1C1815", fontWeight: 700, cursor: foodLogLoading ? "default" : "pointer", display: "flex", alignItems: "center", opacity: foodLogLoading ? 0.7 : 1 }}
+                      style={{ background: PALETTE.accent2, border: "none", borderRadius: "8px", padding: "0.5rem 0.7rem", color: PALETTE.bg, fontWeight: 700, cursor: foodLogLoading ? "default" : "pointer", display: "flex", alignItems: "center", opacity: foodLogLoading ? 0.7 : 1 }}
                     >
                       {foodLogLoading ? <Loader2 size={15} className="spin" /> : <Search size={15} />}
                     </button>
@@ -4419,11 +4717,11 @@ function BulkTiffin() {
                       alignItems: "center",
                       justifyContent: "center",
                       gap: "0.4rem",
-                      background: "#252019",
-                      border: "1px solid #34291C",
+                      background: PALETTE.surface,
+                      border: `1px solid ${PALETTE.border}`,
                       borderRadius: "8px",
                       padding: "0.55rem",
-                      color: "#C9BBA3",
+                      color: PALETTE.textSecondary,
                       fontSize: "0.78rem",
                       fontWeight: 600,
                       cursor: photoLoading ? "default" : "pointer",
@@ -4433,39 +4731,39 @@ function BulkTiffin() {
                     {photoLoading ? <Loader2 size={14} className="spin" /> : <Camera size={14} />}
                     {photoLoading ? "Reading photo…" : "Or snap a photo of your food"}
                   </button>
-                  <div style={{ fontSize: "0.66rem", color: "#5C6E58", marginBottom: "0.6rem", textAlign: "center" }}>{apiKey ? "Uses your Anthropic API key." : "Needs an API key — add one in ⚙️ Settings."}</div>
+                  <div style={{ fontSize: "0.66rem", color: PALETTE.textMutedGreen, marginBottom: "0.6rem", textAlign: "center" }}>{apiKey ? "Uses your Anthropic API key." : "Needs an API key — add one in ⚙️ Settings."}</div>
 
-                  {foodLogError && <div style={{ fontSize: "0.74rem", color: "#C25450", marginBottom: "0.6rem" }}>{foodLogError}</div>}
-                  {foodLogNotice && <div style={{ fontSize: "0.72rem", color: "#8A7A63", marginBottom: "0.6rem" }}>{foodLogNotice}</div>}
-                  {foodLogLoading && <div style={{ fontSize: "0.76rem", color: "#8A7A63", marginBottom: "0.6rem" }}>Looking that up live…</div>}
+                  {foodLogError && <div style={{ fontSize: "0.74rem", color: PALETTE.error, marginBottom: "0.6rem" }}>{foodLogError}</div>}
+                  {foodLogNotice && <div style={{ fontSize: "0.72rem", color: PALETTE.textMuted, marginBottom: "0.6rem" }}>{foodLogNotice}</div>}
+                  {foodLogLoading && <div style={{ fontSize: "0.76rem", color: PALETTE.textMuted, marginBottom: "0.6rem" }}>Looking that up live…</div>}
                   {foodLogResult && (
-                    <div className="pop-in" style={{ background: "#252019", border: "1px solid #34291C", borderRadius: "10px", padding: "0.7rem 0.8rem", marginBottom: "0.75rem" }}>
-                      <div style={{ fontSize: "0.85rem", fontWeight: 600, color: "#F2E9DC" }}>{foodLogResult.name}</div>
-                      <div style={{ fontSize: "0.78rem", color: "#E3A008", marginTop: "0.15rem" }}>
+                    <div className="pop-in" style={{ background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: "10px", padding: "0.7rem 0.8rem", marginBottom: "0.75rem" }}>
+                      <div style={{ fontSize: "0.85rem", fontWeight: 600, color: PALETTE.textPrimary }}>{foodLogResult.name}</div>
+                      <div style={{ fontSize: "0.78rem", color: PALETTE.accent, marginTop: "0.15rem" }}>
                         {Math.round(foodLogResult.kcal)} kcal{foodLogResult.protein ? ` · ${Math.round(foodLogResult.protein)}g protein` : ""}
                       </div>
-                      {foodLogResult.source && <div style={{ fontSize: "0.68rem", color: "#8A7A63", marginTop: "0.15rem" }}>{foodLogResult.source}</div>}
+                      {foodLogResult.source && <div style={{ fontSize: "0.68rem", color: PALETTE.textMuted, marginTop: "0.15rem" }}>{foodLogResult.source}</div>}
                       <button
                         onClick={addFoodLogToToday}
-                        style={{ marginTop: "0.6rem", display: "flex", alignItems: "center", gap: "0.35rem", background: "#4A7C59", border: "none", borderRadius: "8px", padding: "0.45rem 0.75rem", color: "#F2E9DC", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}
+                        style={{ marginTop: "0.6rem", display: "flex", alignItems: "center", gap: "0.35rem", background: PALETTE.success, border: "none", borderRadius: "8px", padding: "0.45rem 0.75rem", color: PALETTE.textPrimary, fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}
                       >
                         <Plus size={13} /> Add to today
                       </button>
                     </div>
                   )}
 
-                  <div style={{ fontSize: "0.7rem", color: "#8A7A63", marginBottom: "0.5rem" }}>Or just type the calories directly:</div>
+                  <div style={{ fontSize: "0.7rem", color: PALETTE.textMuted, marginBottom: "0.5rem" }}>Or just type the calories directly:</div>
                   <div style={{ display: "flex", gap: "0.5rem" }}>
                     <input
                       type="number"
                       value={extraInput}
                       onChange={(e) => setExtraInput(e.target.value)}
                       placeholder="e.g. 250"
-                      style={{ flex: 1, background: "#1C1815", border: "1px solid #34291C", borderRadius: "8px", padding: "0.5rem 0.7rem", color: "#F2E9DC", fontSize: "0.8rem", outline: "none" }}
+                      style={{ flex: 1, background: PALETTE.bg, border: `1px solid ${PALETTE.border}`, borderRadius: "8px", padding: "0.5rem 0.7rem", color: PALETTE.textPrimary, fontSize: "0.8rem", outline: "none" }}
                     />
                     <button
                       onClick={addExtraCal}
-                      style={{ background: "#34291C", border: "none", borderRadius: "8px", padding: "0.5rem 0.8rem", color: "#F2E9DC", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer" }}
+                      style={{ background: PALETTE.border, border: "none", borderRadius: "8px", padding: "0.5rem 0.8rem", color: PALETTE.textPrimary, fontWeight: 600, fontSize: "0.8rem", cursor: "pointer" }}
                     >
                       Add
                     </button>
@@ -4477,20 +4775,20 @@ function BulkTiffin() {
             {/* Today's logged extras */}
             {extraItems.length > 0 && (
               <div style={{ padding: "1rem 1.25rem 0" }}>
-                <div style={{ fontSize: "0.72rem", color: "#8A7A63", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "0.4rem" }}>
+                <div style={{ fontSize: "0.72rem", color: PALETTE.textMuted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "0.4rem" }}>
                   Logged today · {extraItems.length} item{extraItems.length > 1 ? "s" : ""}
                 </div>
-                <div style={{ background: "#1F1A14", borderRadius: "14px", border: "1px solid #34291C", padding: "0.3rem" }}>
+                <div style={{ background: PALETTE.surfaceDark, borderRadius: "14px", border: `1px solid ${PALETTE.border}`, padding: "0.3rem" }}>
                   {extraItems.map((item) => (
                     <div key={item.id} className="fade-in" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.6rem 0.7rem" }}>
                       <div>
-                        <div style={{ fontSize: "0.85rem", color: "#F2E9DC" }}>{item.name}</div>
-                        <div style={{ fontSize: "0.72rem", color: "#8A7A63" }}>
+                        <div style={{ fontSize: "0.85rem", color: PALETTE.textPrimary }}>{item.name}</div>
+                        <div style={{ fontSize: "0.72rem", color: PALETTE.textMuted }}>
                           {item.kcal} kcal{item.protein ? ` · ${item.protein}g protein` : ""}
                         </div>
                       </div>
                       <button onClick={() => removeExtraItem(item.id)} style={{ background: "transparent", border: "none", cursor: "pointer", padding: "0.3rem" }}>
-                        <X size={14} color="#8A7A63" />
+                        <X size={14} color={PALETTE.textMuted} />
                       </button>
                     </div>
                   ))}
@@ -4500,7 +4798,7 @@ function BulkTiffin() {
 
             {/* Tiffin stack */}
             <div style={{ padding: "1.25rem 1.25rem 0" }}>
-              <div className="elevated" style={{ background: "#252019", borderRadius: "20px", padding: "0.6rem", border: "1px solid #34291C" }}>
+              <div className="elevated" style={{ background: PALETTE.surface, borderRadius: "20px", padding: "0.6rem", border: `1px solid ${PALETTE.border}` }}>
                 {TASKS.map((t, i) => {
                   const done = !!dailyTasks[t.id];
                   const overdue = !done && overdueTaskIds.includes(t.id);
@@ -4514,7 +4812,7 @@ function BulkTiffin() {
                         display: "flex",
                         alignItems: "center",
                         gap: "0.85rem",
-                        background: done ? "#E3A008" : "transparent",
+                        background: done ? PALETTE.accent : "transparent",
                         border: "none",
                         borderRadius: "14px",
                         padding: "0.85rem 0.9rem",
@@ -4531,24 +4829,24 @@ function BulkTiffin() {
                           width: "28px",
                           height: "28px",
                           borderRadius: "50%",
-                          border: done ? "none" : "2px solid #4A3E2C",
-                          background: done ? "#1C1815" : "transparent",
+                          border: done ? "none" : `2px solid ${PALETTE.borderLight}`,
+                          background: done ? PALETTE.bg : "transparent",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
                           flexShrink: 0,
                         }}
                       >
-                        {done && <Check size={16} color="#E3A008" strokeWidth={3} className="check-pop" />}
+                        {done && <Check size={16} color={PALETTE.accent} strokeWidth={3} className="check-pop" />}
                       </div>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 600, fontSize: "0.95rem", color: done ? "#1C1815" : "#F2E9DC" }}>{t.label}</div>
-                        <div style={{ fontSize: "0.78rem", color: done ? "#3D3115" : "#8A7A63" }}>
+                        <div style={{ fontWeight: 600, fontSize: "0.95rem", color: done ? PALETTE.bg : PALETTE.textPrimary }}>{t.label}</div>
+                        <div style={{ fontSize: "0.78rem", color: done ? "#3D3115" : PALETTE.textMuted }}>
                           {t.detail}
                           {t.kcal > 0 && <span> · ~{taskKcal(t)} kcal</span>}
                         </div>
                       </div>
-                      <div style={{ fontSize: "0.72rem", fontWeight: 600, color: done ? "#1C1815" : "#5C4E38", whiteSpace: "nowrap" }}>{t.time}</div>
+                      <div style={{ fontSize: "0.72rem", fontWeight: 600, color: done ? PALETTE.bg : PALETTE.textMutedBrown, whiteSpace: "nowrap" }}>{t.time}</div>
                     </button>
                   );
                 })}
@@ -4582,7 +4880,7 @@ function BulkTiffin() {
                   </div>
                   <button
                     onClick={dismissHealthNudge}
-                    style={{ marginTop: "0.5rem", background: "transparent", border: "none", color: "#C97C2C", fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", padding: 0 }}
+                    style={{ marginTop: "0.5rem", background: "transparent", border: "none", color: PALETTE.accent2, fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", padding: 0 }}
                   >
                     Got it, remind me in 30 days
                   </button>
@@ -4591,29 +4889,29 @@ function BulkTiffin() {
             )}
 
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
-              <Scale size={18} color="#4A7C59" />
+              <Scale size={18} color={PALETTE.success} />
               <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: "1.15rem", fontWeight: 600, margin: 0 }}>Weight</h2>
             </div>
 
             <div style={{ display: "flex", gap: "1.5rem", marginBottom: "1rem", flexWrap: "wrap" }}>
               <div>
                 <div style={{ fontSize: "1.6rem", fontWeight: 600, fontFamily: "'Fraunces', serif" }}>{latestWeight} kg</div>
-                <div style={{ fontSize: "0.75rem", color: "#8A7A63" }}>current (raw)</div>
+                <div style={{ fontSize: "0.75rem", color: PALETTE.textMuted }}>current (raw)</div>
               </div>
               <div>
-                <div style={{ fontSize: "1.6rem", fontWeight: 600, fontFamily: "'Fraunces', serif", color: delta >= 0 ? "#4A7C59" : "#C25450" }}>
+                <div style={{ fontSize: "1.6rem", fontWeight: 600, fontFamily: "'Fraunces', serif", color: delta >= 0 ? PALETTE.success : PALETTE.error }}>
                   {delta >= 0 ? "+" : ""}
                   {delta} kg
                 </div>
-                <div style={{ fontSize: "0.75rem", color: "#8A7A63" }}>since 51.6 kg baseline</div>
+                <div style={{ fontSize: "0.75rem", color: PALETTE.textMuted }}>since 51.6 kg baseline</div>
               </div>
               {weeklyRate !== null && (
                 <div>
-                  <div style={{ fontSize: "1.6rem", fontWeight: 600, fontFamily: "'Fraunces', serif", color: "#E3A008" }}>
+                  <div style={{ fontSize: "1.6rem", fontWeight: 600, fontFamily: "'Fraunces', serif", color: PALETTE.accent }}>
                     {weeklyRate >= 0 ? "+" : ""}
                     {weeklyRate}
                   </div>
-                  <div style={{ fontSize: "0.75rem", color: "#8A7A63" }}>kg/week (trend)</div>
+                  <div style={{ fontSize: "0.75rem", color: PALETTE.textMuted }}>kg/week (trend)</div>
                 </div>
               )}
             </div>
@@ -4621,7 +4919,7 @@ function BulkTiffin() {
             {chartData.length > 1 && (
               <div style={{ marginBottom: "0.5rem" }}>
                 <SimpleWeightChart data={chartData} startWeight={startWeight} />
-                <div style={{ fontSize: "0.7rem", color: "#8A7A63", textAlign: "center", marginTop: "0.25rem" }}>
+                <div style={{ fontSize: "0.7rem", color: PALETTE.textMuted, textAlign: "center", marginTop: "0.25rem" }}>
                   Faint line = daily scale weight (noisy) · Gold line = smoothed trend
                 </div>
               </div>
@@ -4636,15 +4934,15 @@ function BulkTiffin() {
                   alignItems: "center",
                   gap: "0.5rem",
                   padding: "1.75rem 1rem",
-                  background: "#1F1A14",
+                  background: PALETTE.surfaceDark,
                   borderRadius: "14px",
-                  border: "1px dashed #34291C",
+                  border: `1px dashed ${PALETTE.border}`,
                   marginBottom: "0.5rem",
                   textAlign: "center",
                 }}
               >
                 <span style={{ fontSize: "1.8rem" }}>⚖️✨</span>
-                <div style={{ fontSize: "0.82rem", color: "#C9BBA3" }}>Log a few weigh-ins and your trend line will start showing up here.</div>
+                <div style={{ fontSize: "0.82rem", color: PALETTE.textSecondary }}>Log a few weigh-ins and your trend line will start showing up here.</div>
               </div>
             )}
 
@@ -4655,11 +4953,11 @@ function BulkTiffin() {
                 value={weightInput}
                 onChange={(e) => setWeightInput(e.target.value)}
                 placeholder="Log today's weight (kg)"
-                style={{ flex: 1, background: "#252019", border: "1px solid #34291C", borderRadius: "10px", padding: "0.7rem 0.9rem", color: "#F2E9DC", fontSize: "0.9rem", outline: "none" }}
+                style={{ flex: 1, background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: "10px", padding: "0.7rem 0.9rem", color: PALETTE.textPrimary, fontSize: "0.9rem", outline: "none" }}
               />
               <button
                 onClick={logWeight}
-                style={{ background: "#4A7C59", border: "none", borderRadius: "10px", padding: "0.7rem 1.1rem", color: "#F2E9DC", fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: "0.3rem" }}
+                style={{ background: PALETTE.success, border: "none", borderRadius: "10px", padding: "0.7rem 1.1rem", color: PALETTE.textPrimary, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: "0.3rem" }}
               >
                 <Plus size={16} /> Log
               </button>
@@ -4667,18 +4965,18 @@ function BulkTiffin() {
 
             {weights.length > 0 && (
               <details style={{ marginTop: "0.6rem" }}>
-                <summary style={{ fontSize: "0.75rem", color: "#8A7A63", cursor: "pointer", userSelect: "none" }}>Recent entries ({weights.length}) — tap to edit or remove</summary>
-                <div style={{ marginTop: "0.5rem", background: "#1F1A14", borderRadius: "12px", border: "1px solid #34291C", padding: "0.3rem" }}>
+                <summary style={{ fontSize: "0.75rem", color: PALETTE.textMuted, cursor: "pointer", userSelect: "none" }}>Recent entries ({weights.length}) — tap to edit or remove</summary>
+                <div style={{ marginTop: "0.5rem", background: PALETTE.surfaceDark, borderRadius: "12px", border: `1px solid ${PALETTE.border}`, padding: "0.3rem" }}>
                   {[...weights]
                     .sort((a, b) => (a.date < b.date ? 1 : -1))
                     .slice(0, 14)
                     .map((w) => (
                       <div key={w.date} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.5rem 0.7rem" }}>
-                        <span style={{ fontSize: "0.8rem", color: "#C9BBA3" }}>{w.date}</span>
+                        <span style={{ fontSize: "0.8rem", color: PALETTE.textSecondary }}>{w.date}</span>
                         <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
                           <span style={{ fontSize: "0.85rem", fontWeight: 600 }}>{w.weight} kg</span>
                           <button onClick={() => deleteWeight(w.date)} style={{ background: "transparent", border: "none", cursor: "pointer", padding: "0.2rem" }}>
-                            <X size={14} color="#8A7A63" />
+                            <X size={14} color={PALETTE.textMuted} />
                           </button>
                         </div>
                       </div>
@@ -4689,15 +4987,15 @@ function BulkTiffin() {
 
             <div style={{ marginTop: "0.85rem" }}>
               {goalWeight ? (
-                <div style={{ fontSize: "0.8rem", color: "#8A7A63" }}>
-                  Goal: <span style={{ color: "#F2E9DC", fontWeight: 600 }}>{goalWeight} kg</span>
+                <div style={{ fontSize: "0.8rem", color: PALETTE.textMuted }}>
+                  Goal: <span style={{ color: PALETTE.textPrimary, fontWeight: 600 }}>{goalWeight} kg</span>
                   {projection && projection !== "goal reached" && (
                     <>
                       {" "}
-                      · projected around <span style={{ color: "#E3A008", fontWeight: 600 }}>{projection}</span>
+                      · projected around <span style={{ color: PALETTE.accent, fontWeight: 600 }}>{projection}</span>
                     </>
                   )}
-                  {projection === "goal reached" && <span style={{ color: "#4A7C59", fontWeight: 600 }}> · reached! 🎉</span>}
+                  {projection === "goal reached" && <span style={{ color: PALETTE.success, fontWeight: 600 }}> · reached! 🎉</span>}
                   {!projection && <span> · log a couple weeks of weight to get a projection</span>}
                 </div>
               ) : (
@@ -4708,9 +5006,9 @@ function BulkTiffin() {
                     value={goalInput}
                     onChange={(e) => setGoalInput(e.target.value)}
                     placeholder="Set a goal weight (kg)"
-                    style={{ flex: 1, background: "#1C1815", border: "1px solid #34291C", borderRadius: "8px", padding: "0.55rem 0.8rem", color: "#F2E9DC", fontSize: "0.82rem", outline: "none" }}
+                    style={{ flex: 1, background: PALETTE.bg, border: `1px solid ${PALETTE.border}`, borderRadius: "8px", padding: "0.55rem 0.8rem", color: PALETTE.textPrimary, fontSize: "0.82rem", outline: "none" }}
                   />
-                  <button onClick={setGoal} style={{ background: "#34291C", border: "none", borderRadius: "8px", padding: "0.55rem 0.9rem", color: "#E3A008", fontWeight: 600, fontSize: "0.82rem", cursor: "pointer" }}>
+                  <button onClick={setGoal} style={{ background: PALETTE.border, border: "none", borderRadius: "8px", padding: "0.55rem 0.9rem", color: PALETTE.accent, fontWeight: 600, fontSize: "0.82rem", cursor: "pointer" }}>
                     Set goal
                   </button>
                 </div>
@@ -4718,59 +5016,59 @@ function BulkTiffin() {
             </div>
 
             {weeklyDigest && (
-              <div style={{ marginTop: "1.75rem", background: "#252019", borderRadius: "16px", padding: "1.1rem", border: "1px solid #34291C" }}>
+              <div style={{ marginTop: "1.75rem", background: PALETTE.surface, borderRadius: "16px", padding: "1.1rem", border: `1px solid ${PALETTE.border}` }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
-                  <Sparkles size={16} color="#C97C2C" />
+                  <Sparkles size={16} color={PALETTE.accent2} />
                   <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: "1.05rem", fontWeight: 600, margin: 0 }}>This week</h2>
                 </div>
                 <div style={{ display: "flex", gap: "1.25rem", flexWrap: "wrap", marginBottom: "0.85rem" }}>
                   <div>
                     <div style={{ fontSize: "1.3rem", fontWeight: 700, fontFamily: "'Fraunces', serif" }}>{weeklyDigest.avgKcal}</div>
-                    <div style={{ fontSize: "0.68rem", color: "#8A7A63" }}>avg kcal/day</div>
+                    <div style={{ fontSize: "0.68rem", color: PALETTE.textMuted }}>avg kcal/day</div>
                   </div>
                   <div>
                     <div style={{ fontSize: "1.3rem", fontWeight: 700, fontFamily: "'Fraunces', serif" }}>{weeklyDigest.avgProtein}g</div>
-                    <div style={{ fontSize: "0.68rem", color: "#8A7A63" }}>avg protein/day</div>
+                    <div style={{ fontSize: "0.68rem", color: PALETTE.textMuted }}>avg protein/day</div>
                   </div>
                   <div>
-                    <div style={{ fontSize: "1.3rem", fontWeight: 700, fontFamily: "'Fraunces', serif", color: "#4A7C59" }}>{weeklyDigest.adherence}%</div>
-                    <div style={{ fontSize: "0.68rem", color: "#8A7A63" }}>adherence</div>
+                    <div style={{ fontSize: "1.3rem", fontWeight: 700, fontFamily: "'Fraunces', serif", color: PALETTE.success }}>{weeklyDigest.adherence}%</div>
+                    <div style={{ fontSize: "0.68rem", color: PALETTE.textMuted }}>adherence</div>
                   </div>
                 </div>
-                <div style={{ fontSize: "0.8rem", color: "#C9BBA3", lineHeight: 1.5, borderTop: "1px solid #34291C", paddingTop: "0.75rem" }}>{weeklyDigest.suggestion}</div>
+                <div style={{ fontSize: "0.8rem", color: PALETTE.textSecondary, lineHeight: 1.5, borderTop: `1px solid ${PALETTE.border}`, paddingTop: "0.75rem" }}>{weeklyDigest.suggestion}</div>
               </div>
             )}
 
             {adaptiveEngine && (
-              <div style={{ marginTop: "0.75rem", background: "#1F1A14", borderRadius: "16px", padding: "1.1rem", border: "1px solid #34291C" }}>
+              <div style={{ marginTop: "0.75rem", background: PALETTE.surfaceDark, borderRadius: "16px", padding: "1.1rem", border: `1px solid ${PALETTE.border}` }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.6rem" }}>
-                  <TrendingUp size={16} color="#4A7C59" />
+                  <TrendingUp size={16} color={PALETTE.success} />
                   <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: "1.05rem", fontWeight: 600, margin: 0 }}>Adaptive target</h2>
                   {!adaptiveEngine.confident && (
-                    <span style={{ fontSize: "0.62rem", background: "#34291C", color: "#8A7A63", borderRadius: "999px", padding: "0.15rem 0.5rem", fontWeight: 700 }}>PROVISIONAL</span>
+                    <span style={{ fontSize: "0.62rem", background: PALETTE.border, color: PALETTE.textMuted, borderRadius: "999px", padding: "0.15rem 0.5rem", fontWeight: 700 }}>PROVISIONAL</span>
                   )}
                 </div>
-                <div style={{ fontSize: "0.8rem", color: "#C9BBA3", lineHeight: 1.6 }}>
+                <div style={{ fontSize: "0.8rem", color: PALETTE.textSecondary, lineHeight: 1.6 }}>
                   Based on your actual intake vs. weight trend, your real maintenance looks like{" "}
-                  <strong style={{ color: "#F2E9DC" }}>~{adaptiveEngine.estimatedTDEE} kcal/day</strong>. To gain at a steady ~{desiredGainRate} kg/week, your target would be{" "}
-                  <strong style={{ color: "#E3A008" }}>{adaptiveEngine.suggestedTarget} kcal</strong>
+                  <strong style={{ color: PALETTE.textPrimary }}>~{adaptiveEngine.estimatedTDEE} kcal/day</strong>. To gain at a steady ~{desiredGainRate} kg/week, your target would be{" "}
+                  <strong style={{ color: PALETTE.accent }}>{adaptiveEngine.suggestedTarget} kcal</strong>
                   {Math.abs(adaptiveEngine.diff) < 100 ? " — that's basically where you already are." : `, ${adaptiveEngine.diff > 0 ? "about " + adaptiveEngine.diff + " more" : "about " + Math.abs(adaptiveEngine.diff) + " less"} than your current ${calorieTarget}.`}
                 </div>
                 {!adaptiveEngine.confident && (
-                  <div style={{ fontSize: "0.7rem", color: "#8A7A63", marginTop: "0.5rem" }}>Based on {weights.length} weigh-ins so far — gets more reliable past 2 weeks of consistent logging.</div>
+                  <div style={{ fontSize: "0.7rem", color: PALETTE.textMuted, marginTop: "0.5rem" }}>Based on {weights.length} weigh-ins so far — gets more reliable past 2 weeks of consistent logging.</div>
                 )}
                 <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginTop: "0.7rem" }}>
-                  <span style={{ fontSize: "0.68rem", color: "#8A7A63" }}>Target rate:</span>
+                  <span style={{ fontSize: "0.68rem", color: PALETTE.textMuted }}>Target rate:</span>
                   {[0.25, 0.35, 0.5].map((rate) => (
                     <button
                       key={rate}
                       onClick={() => saveGainRate(rate)}
                       style={{
-                        background: desiredGainRate === rate ? "#4A7C59" : "#252019",
-                        border: `1px solid ${desiredGainRate === rate ? "#4A7C59" : "#34291C"}`,
+                        background: desiredGainRate === rate ? PALETTE.success : PALETTE.surface,
+                        border: `1px solid ${desiredGainRate === rate ? PALETTE.success : PALETTE.border}`,
                         borderRadius: "999px",
                         padding: "0.25rem 0.6rem",
-                        color: desiredGainRate === rate ? "#F2E9DC" : "#8A7A63",
+                        color: desiredGainRate === rate ? PALETTE.textPrimary : PALETTE.textMuted,
                         fontSize: "0.68rem",
                         fontWeight: 600,
                         cursor: "pointer",
@@ -4783,7 +5081,7 @@ function BulkTiffin() {
                 {Math.abs(adaptiveEngine.diff) >= 100 && (
                   <button
                     onClick={applyAdaptiveTarget}
-                    style={{ marginTop: "0.7rem", background: "#4A7C59", border: "none", borderRadius: "10px", padding: "0.6rem 1rem", color: "#F2E9DC", fontWeight: 700, fontSize: "0.8rem", cursor: "pointer" }}
+                    style={{ marginTop: "0.7rem", background: PALETTE.success, border: "none", borderRadius: "10px", padding: "0.6rem 1rem", color: PALETTE.textPrimary, fontWeight: 700, fontSize: "0.8rem", cursor: "pointer" }}
                   >
                     Apply {adaptiveEngine.suggestedTarget} kcal target
                   </button>
@@ -4793,9 +5091,9 @@ function BulkTiffin() {
 
             <div style={{ marginTop: "1.75rem" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
-                <PartyPopper size={18} color="#C97C2C" />
+                <PartyPopper size={18} color={PALETTE.accent2} />
                 <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: "1.15rem", fontWeight: 600, margin: 0 }}>
-                  Badges {streakData.bestStreak > 0 && <span style={{ fontSize: "0.75rem", color: "#8A7A63", fontWeight: 400 }}>· best streak {streakData.bestStreak} days</span>}
+                  Badges {streakData.bestStreak > 0 && <span style={{ fontSize: "0.75rem", color: PALETTE.textMuted, fontWeight: 400 }}>· best streak {streakData.bestStreak} days</span>}
                 </h2>
               </div>
               <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
@@ -4818,17 +5116,17 @@ function BulkTiffin() {
                           width: "48px",
                           height: "48px",
                           borderRadius: "50%",
-                          background: unlocked ? "#E3A008" : "#252019",
-                          border: `1px solid ${unlocked ? "#E3A008" : "#34291C"}`,
+                          background: unlocked ? PALETTE.accent : PALETTE.surface,
+                          border: `1px solid ${unlocked ? PALETTE.accent : PALETTE.border}`,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
                           opacity: unlocked ? 1 : 0.55,
                         }}
                       >
-                        <Flame size={20} color={unlocked ? "#1C1815" : "#5C4E38"} />
+                        <Flame size={20} color={unlocked ? PALETTE.bg : PALETTE.textMutedBrown} />
                       </div>
-                      <span style={{ fontSize: "0.68rem", color: unlocked ? "#F2E9DC" : "#5C4E38", fontWeight: 600 }}>{m}d</span>
+                      <span style={{ fontSize: "0.68rem", color: unlocked ? PALETTE.textPrimary : PALETTE.textMutedBrown, fontWeight: 600 }}>{m}d</span>
                     </div>
                   );
                 })}
@@ -4837,15 +5135,15 @@ function BulkTiffin() {
 
             <div style={{ marginTop: "1.75rem" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
-                <Flame size={18} color="#E3A008" />
+                <Flame size={18} color={PALETTE.accent} />
                 <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: "1.15rem", fontWeight: 600, margin: 0 }}>Last 30 days</h2>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(10, 1fr)", gap: "0.3rem" }}>
                 {last30Days.map((d) => {
-                  let bg = "#252019";
+                  let bg = PALETTE.surface;
                   if (d.ratio !== null) {
-                    if (d.ratio >= 1) bg = "#4A7C59";
-                    else if (d.ratio >= 0.5) bg = "#E3A008";
+                    if (d.ratio >= 1) bg = PALETTE.success;
+                    else if (d.ratio >= 0.5) bg = PALETTE.accent;
                     else if (d.ratio > 0) bg = "#8A6A2C";
                     else bg = "#3D2E1C";
                   }
@@ -4854,12 +5152,12 @@ function BulkTiffin() {
                       key={d.date}
                       onClick={() => d.ratio !== null && setSelectedDay(d.date)}
                       title={`${d.date}: ${d.ratio === null ? "no data" : Math.round(d.ratio * 100) + "% complete"}`}
-                      style={{ aspectRatio: "1", borderRadius: "6px", background: bg, border: "1px solid #34291C", cursor: d.ratio !== null ? "pointer" : "default", padding: 0 }}
+                      style={{ aspectRatio: "1", borderRadius: "6px", background: bg, border: `1px solid ${PALETTE.border}`, cursor: d.ratio !== null ? "pointer" : "default", padding: 0 }}
                     />
                   );
                 })}
               </div>
-              <div style={{ fontSize: "0.7rem", color: "#8A7A63", marginTop: "0.5rem" }}>Green = full day · gold = partial · dark = missed</div>
+              <div style={{ fontSize: "0.7rem", color: PALETTE.textMuted, marginTop: "0.5rem" }}>Green = full day · gold = partial · dark = missed</div>
             </div>
           </div>
         )}
@@ -4871,29 +5169,29 @@ function BulkTiffin() {
             {/* 3-day meal plan */}
             <div style={{ marginBottom: "1.75rem" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
-                <CalendarDays size={18} color="#4A7C59" />
+                <CalendarDays size={18} color={PALETTE.success} />
                 <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: "1.15rem", fontWeight: 600, margin: 0 }}>3-day meal plan</h2>
               </div>
               {!planResult && (
                 <button
                   onClick={generateMealPlan}
                   disabled={planLoading}
-                  style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", background: "#4A7C59", border: "none", borderRadius: "12px", padding: "0.8rem", color: "#F2E9DC", fontSize: "0.88rem", fontWeight: 700, cursor: planLoading ? "default" : "pointer", opacity: planLoading ? 0.7 : 1 }}
+                  style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", background: PALETTE.success, border: "none", borderRadius: "12px", padding: "0.8rem", color: PALETTE.textPrimary, fontSize: "0.88rem", fontWeight: 700, cursor: planLoading ? "default" : "pointer", opacity: planLoading ? 0.7 : 1 }}
                 >
                   {planLoading ? <Loader2 size={16} className="spin" /> : <CalendarDays size={16} />}
                   {planLoading ? "Planning your next 3 days…" : "Generate a 3-day plan"}
                 </button>
               )}
-              {planError && <div style={{ fontSize: "0.78rem", color: "#C25450", marginTop: "0.5rem" }}>{planError}</div>}
-              {planNotice && <div style={{ fontSize: "0.72rem", color: "#8A7A63", marginTop: "0.5rem" }}>{planNotice}</div>}
+              {planError && <div style={{ fontSize: "0.78rem", color: PALETTE.error, marginTop: "0.5rem" }}>{planError}</div>}
+              {planNotice && <div style={{ fontSize: "0.72rem", color: PALETTE.textMuted, marginTop: "0.5rem" }}>{planNotice}</div>}
               {!apiKey && !planResult && (
-                <div style={{ fontSize: "0.68rem", color: "#5C6E58", marginTop: "0.5rem" }}>Add an API key in ⚙️ Settings for a live, personalized plan instead of your recipe library.</div>
+                <div style={{ fontSize: "0.68rem", color: PALETTE.textMutedGreen, marginTop: "0.5rem" }}>Add an API key in ⚙️ Settings for a live, personalized plan instead of your recipe library.</div>
               )}
               {planResult && (
                 <div className="fade-in">
                   {planResult.map((d, i) => (
-                    <div key={i} style={{ background: "#252019", border: "1px solid #34291C", borderRadius: "14px", padding: "0.9rem 1rem", marginBottom: "0.5rem" }}>
-                      <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: "0.9rem", marginBottom: "0.5rem", color: "#E3A008" }}>{d.day}</div>
+                    <div key={i} style={{ background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: "14px", padding: "0.9rem 1rem", marginBottom: "0.5rem" }}>
+                      <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: "0.9rem", marginBottom: "0.5rem", color: PALETTE.accent }}>{d.day}</div>
                       {[
                         { label: "Breakfast", val: d.breakfast },
                         { label: "Lunch", val: d.lunch },
@@ -4904,16 +5202,16 @@ function BulkTiffin() {
                           onClick={() => jumpToRecipeSearch(m.val)}
                           style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", background: "transparent", border: "none", padding: "0.4rem 0", cursor: "pointer", textAlign: "left" }}
                         >
-                          <span style={{ fontSize: "0.78rem", color: "#8A7A63", width: "70px", flexShrink: 0 }}>{m.label}</span>
-                          <span style={{ fontSize: "0.85rem", color: "#F2E9DC", flex: 1 }}>{m.val}</span>
-                          <ChevronRight size={14} color="#5C4E38" />
+                          <span style={{ fontSize: "0.78rem", color: PALETTE.textMuted, width: "70px", flexShrink: 0 }}>{m.label}</span>
+                          <span style={{ fontSize: "0.85rem", color: PALETTE.textPrimary, flex: 1 }}>{m.val}</span>
+                          <ChevronRight size={14} color={PALETTE.textMutedBrown} />
                         </button>
                       ))}
                     </div>
                   ))}
                   <button
                     onClick={() => setPlanResult(null)}
-                    style={{ width: "100%", background: "#252019", border: "1px solid #34291C", borderRadius: "10px", padding: "0.6rem", color: "#8A7A63", fontSize: "0.78rem", cursor: "pointer" }}
+                    style={{ width: "100%", background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: "10px", padding: "0.6rem", color: PALETTE.textMuted, fontSize: "0.78rem", cursor: "pointer" }}
                   >
                     Generate a new plan
                   </button>
@@ -4923,7 +5221,7 @@ function BulkTiffin() {
 
             {/* Live recipe search */}
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
-              <Search size={18} color="#C97C2C" />
+              <Search size={18} color={PALETTE.accent2} />
               <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: "1.15rem", fontWeight: 600, margin: 0 }}>Search any recipe</h2>
             </div>
             <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.75rem" }}>
@@ -4933,26 +5231,26 @@ function BulkTiffin() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && searchRecipe()}
                 placeholder="e.g. butter chicken, protein pancakes…"
-                style={{ flex: 1, background: "#252019", border: "1px solid #34291C", borderRadius: "10px", padding: "0.7rem 0.9rem", color: "#F2E9DC", fontSize: "0.88rem", outline: "none" }}
+                style={{ flex: 1, background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: "10px", padding: "0.7rem 0.9rem", color: PALETTE.textPrimary, fontSize: "0.88rem", outline: "none" }}
               />
               <button
                 onClick={searchRecipe}
                 disabled={searchLoading}
-                style={{ background: "#C97C2C", border: "none", borderRadius: "10px", padding: "0.7rem 1rem", color: "#1C1815", fontWeight: 700, cursor: searchLoading ? "default" : "pointer", display: "flex", alignItems: "center", gap: "0.3rem", opacity: searchLoading ? 0.7 : 1 }}
+                style={{ background: PALETTE.accent2, border: "none", borderRadius: "10px", padding: "0.7rem 1rem", color: PALETTE.bg, fontWeight: 700, cursor: searchLoading ? "default" : "pointer", display: "flex", alignItems: "center", gap: "0.3rem", opacity: searchLoading ? 0.7 : 1 }}
               >
                 {searchLoading ? <Loader2 size={16} className="spin" /> : <Search size={16} />}
               </button>
             </div>
-            {searchError && <div style={{ fontSize: "0.78rem", color: "#C25450", marginBottom: "0.75rem" }}>{searchError}</div>}
-            {searchLoading && <div style={{ fontSize: "0.75rem", color: "#8A7A63", marginBottom: "0.5rem" }}>Searching live…</div>}
-            {searchNotice && <div style={{ fontSize: "0.72rem", color: "#8A7A63", marginBottom: "0.5rem" }}>{searchNotice}</div>}
+            {searchError && <div style={{ fontSize: "0.78rem", color: PALETTE.error, marginBottom: "0.75rem" }}>{searchError}</div>}
+            {searchLoading && <div style={{ fontSize: "0.75rem", color: PALETTE.textMuted, marginBottom: "0.5rem" }}>Searching live…</div>}
+            {searchNotice && <div style={{ fontSize: "0.72rem", color: PALETTE.textMuted, marginBottom: "0.5rem" }}>{searchNotice}</div>}
             {searchResult && (
               <>
-                {searchQuality === "live" && <div style={{ fontSize: "0.72rem", color: "#4A7C59", marginBottom: "0.5rem" }}>✓ Live result</div>}
-                {searchQuality === "saved" && <div style={{ fontSize: "0.72rem", color: "#4A7C59", marginBottom: "0.5rem" }}>📌 From your saved recipes</div>}
-                {searchQuality === "mealdb" && <div style={{ fontSize: "0.72rem", color: "#4A7C59", marginBottom: "0.5rem" }}>✓ Found in the recipe database</div>}
+                {searchQuality === "live" && <div style={{ fontSize: "0.72rem", color: PALETTE.success, marginBottom: "0.5rem" }}>✓ Live result</div>}
+                {searchQuality === "saved" && <div style={{ fontSize: "0.72rem", color: PALETTE.success, marginBottom: "0.5rem" }}>📌 From your saved recipes</div>}
+                {searchQuality === "mealdb" && <div style={{ fontSize: "0.72rem", color: PALETTE.success, marginBottom: "0.5rem" }}>✓ Found in the recipe database</div>}
                 {searchQuality && !["exact", "live", "saved", "mealdb"].includes(searchQuality) && (
-                  <div style={{ fontSize: "0.74rem", color: "#8A7A63", marginBottom: "0.5rem" }}>
+                  <div style={{ fontSize: "0.74rem", color: PALETTE.textMuted, marginBottom: "0.5rem" }}>
                     {searchQuality === "keyword" ? "Closest match from your recipe library:" : "No exact match — closest thing from your library:"}
                   </div>
                 )}
@@ -4960,34 +5258,34 @@ function BulkTiffin() {
               </>
             )}
             {!apiKey && (
-              <div style={{ fontSize: "0.68rem", color: "#5C6E58", marginTop: "0.5rem" }}>Add an API key in ⚙️ Settings for AI-tailored results too, on top of the recipe database search.</div>
+              <div style={{ fontSize: "0.68rem", color: PALETTE.textMutedGreen, marginTop: "0.5rem" }}>Add an API key in ⚙️ Settings for AI-tailored results too, on top of the recipe database search.</div>
             )}
 
             {/* Browse a bigger recipe library — real recipes with photos, pulled live from TheMealDB */}
             <div style={{ marginTop: "1.75rem" }}>
               <button
                 onClick={() => setShowBrowseLibrary(!showBrowseLibrary)}
-                style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#252019", border: "1px solid #34291C", borderRadius: "14px", padding: "0.8rem 1rem", color: "#F2E9DC", cursor: "pointer", marginBottom: showBrowseLibrary ? "0.6rem" : 0 }}
+                style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: "14px", padding: "0.8rem 1rem", color: PALETTE.textPrimary, cursor: "pointer", marginBottom: showBrowseLibrary ? "0.6rem" : 0 }}
               >
                 <span style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", fontWeight: 600 }}>
-                  <Utensils size={16} color="#C97C2C" /> Browse a bigger recipe library
+                  <Utensils size={16} color={PALETTE.accent2} /> Browse a bigger recipe library
                 </span>
-                <ChevronDown size={16} color="#8A7A63" style={{ transform: showBrowseLibrary ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+                <ChevronDown size={16} color={PALETTE.textMuted} style={{ transform: showBrowseLibrary ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
               </button>
               {showBrowseLibrary && (
                 <div className="fade-in">
-                  <div style={{ fontSize: "0.7rem", color: "#8A7A63", marginBottom: "0.6rem" }}>Hundreds of real recipes with photos — pick a category:</div>
+                  <div style={{ fontSize: "0.7rem", color: PALETTE.textMuted, marginBottom: "0.6rem" }}>Hundreds of real recipes with photos — pick a category:</div>
                   <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginBottom: "0.9rem" }}>
                     {MEALDB_CATEGORIES.map((cat) => (
                       <button
                         key={cat}
                         onClick={() => browseMealDbCategory(cat)}
                         style={{
-                          background: mealdbCategory === cat ? "#C97C2C" : "#252019",
-                          border: `1px solid ${mealdbCategory === cat ? "#C97C2C" : "#34291C"}`,
+                          background: mealdbCategory === cat ? PALETTE.accent2 : PALETTE.surface,
+                          border: `1px solid ${mealdbCategory === cat ? PALETTE.accent2 : PALETTE.border}`,
                           borderRadius: "999px",
                           padding: "0.4rem 0.75rem",
-                          color: mealdbCategory === cat ? "#1C1815" : "#C9BBA3",
+                          color: mealdbCategory === cat ? PALETTE.bg : PALETTE.textSecondary,
                           fontSize: "0.76rem",
                           fontWeight: 600,
                           cursor: "pointer",
@@ -4999,11 +5297,11 @@ function BulkTiffin() {
                   </div>
 
                   {mealdbBrowseLoading && (
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "#8A7A63", fontSize: "0.82rem", marginBottom: "0.75rem" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: PALETTE.textMuted, fontSize: "0.82rem", marginBottom: "0.75rem" }}>
                       <Loader2 size={15} className="spin" /> Loading {mealdbCategory}…
                     </div>
                   )}
-                  {mealdbError && <div style={{ fontSize: "0.78rem", color: "#C25450", marginBottom: "0.75rem" }}>{mealdbError}</div>}
+                  {mealdbError && <div style={{ fontSize: "0.78rem", color: PALETTE.error, marginBottom: "0.75rem" }}>{mealdbError}</div>}
 
                   {mealdbBrowseResults.length > 0 && !mealdbPreview && (
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.5rem", marginBottom: "0.75rem" }}>
@@ -5011,19 +5309,19 @@ function BulkTiffin() {
                         <button
                           key={m.idMeal}
                           onClick={() => importMealDbRecipe(m.idMeal)}
-                          style={{ background: "#252019", border: "1px solid #34291C", borderRadius: "12px", padding: "0.4rem", cursor: "pointer", textAlign: "center" }}
+                          style={{ background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: "12px", padding: "0.4rem", cursor: "pointer", textAlign: "center" }}
                         >
                           <div style={{ width: "100%", aspectRatio: "1", borderRadius: "8px", overflow: "hidden", marginBottom: "0.35rem" }}>
                             <img src={m.strMealThumb} alt={m.strMeal} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                           </div>
-                          <div style={{ fontSize: "0.68rem", color: "#F2E9DC", lineHeight: 1.3 }}>{m.strMeal}</div>
+                          <div style={{ fontSize: "0.68rem", color: PALETTE.textPrimary, lineHeight: 1.3 }}>{m.strMeal}</div>
                         </button>
                       ))}
                     </div>
                   )}
 
                   {mealdbDetailLoading && (
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "#8A7A63", fontSize: "0.82rem", marginBottom: "0.75rem" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: PALETTE.textMuted, fontSize: "0.82rem", marginBottom: "0.75rem" }}>
                       <Loader2 size={15} className="spin" /> Loading recipe…
                     </div>
                   )}
@@ -5031,11 +5329,11 @@ function BulkTiffin() {
                     <div className="fade-in">
                       <button
                         onClick={() => setMealdbPreview(null)}
-                        style={{ display: "flex", alignItems: "center", gap: "0.3rem", background: "transparent", border: "none", color: "#8A7A63", fontSize: "0.76rem", cursor: "pointer", marginBottom: "0.5rem", padding: 0 }}
+                        style={{ display: "flex", alignItems: "center", gap: "0.3rem", background: "transparent", border: "none", color: PALETTE.textMuted, fontSize: "0.76rem", cursor: "pointer", marginBottom: "0.5rem", padding: 0 }}
                       >
                         <ChevronLeft size={14} /> Back to {mealdbCategory}
                       </button>
-                      <div style={{ fontSize: "0.68rem", color: "#5C6E58", marginBottom: "0.5rem" }}>Calories aren't provided by this source, so they're a rough estimate.</div>
+                      <div style={{ fontSize: "0.68rem", color: PALETTE.textMutedGreen, marginBottom: "0.5rem" }}>Calories aren't provided by this source, so they're a rough estimate.</div>
                       <DynamicRecipeCard recipe={mealdbPreview} onAddToShopping={addRecipeIngredientsToShopping} onSave={saveRecipe} onStartCooking={setCookingRecipe} onRemix={openRemix} />
                     </div>
                   )}
@@ -5047,27 +5345,27 @@ function BulkTiffin() {
             <div style={{ marginTop: "1.75rem" }}>
               <button
                 onClick={() => setShowFilter(!showFilter)}
-                style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#252019", border: "1px solid #34291C", borderRadius: "14px", padding: "0.8rem 1rem", color: "#F2E9DC", cursor: "pointer", marginBottom: showFilter ? "0.5rem" : 0 }}
+                style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: "14px", padding: "0.8rem 1rem", color: PALETTE.textPrimary, cursor: "pointer", marginBottom: showFilter ? "0.5rem" : 0 }}
               >
                 <span style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", fontWeight: 600 }}>
-                  <Wand2 size={16} color="#4A7C59" /> Suggest from what I have
+                  <Wand2 size={16} color={PALETTE.success} /> Suggest from what I have
                 </span>
-                <ChevronDown size={16} color="#8A7A63" style={{ transform: showFilter ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+                <ChevronDown size={16} color={PALETTE.textMuted} style={{ transform: showFilter ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
               </button>
               {showFilter && (
-                <div className="fade-in" style={{ background: "#1F1A14", borderRadius: "14px", padding: "0.9rem", border: "1px solid #34291C" }}>
-                  <div style={{ fontSize: "0.7rem", color: "#8A7A63", marginBottom: "0.6rem" }}>Tap the ingredients you want to use:</div>
+                <div className="fade-in" style={{ background: PALETTE.surfaceDark, borderRadius: "14px", padding: "0.9rem", border: `1px solid ${PALETTE.border}` }}>
+                  <div style={{ fontSize: "0.7rem", color: PALETTE.textMuted, marginBottom: "0.6rem" }}>Tap the ingredients you want to use:</div>
                   <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginBottom: "0.75rem" }}>
                     {pantryItems.map((p, i) => (
                       <button
                         key={p.name + i}
                         onClick={() => togglePantryItem(i)}
                         style={{
-                          background: p.selected ? "#4A7C59" : "#252019",
-                          border: `1px solid ${p.selected ? "#4A7C59" : "#34291C"}`,
+                          background: p.selected ? PALETTE.success : PALETTE.surface,
+                          border: `1px solid ${p.selected ? PALETTE.success : PALETTE.border}`,
                           borderRadius: "999px",
                           padding: "0.4rem 0.75rem",
-                          color: p.selected ? "#F2E9DC" : "#C9BBA3",
+                          color: p.selected ? PALETTE.textPrimary : PALETTE.textSecondary,
                           fontSize: "0.76rem",
                           fontWeight: 600,
                           cursor: "pointer",
@@ -5084,24 +5382,24 @@ function BulkTiffin() {
                       onChange={(e) => setNewPantryItem(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && addPantryItem()}
                       placeholder="Add an item you have"
-                      style={{ flex: 1, background: "#1C1815", border: "1px solid #34291C", borderRadius: "8px", padding: "0.5rem 0.7rem", color: "#F2E9DC", fontSize: "0.8rem", outline: "none" }}
+                      style={{ flex: 1, background: PALETTE.bg, border: `1px solid ${PALETTE.border}`, borderRadius: "8px", padding: "0.5rem 0.7rem", color: PALETTE.textPrimary, fontSize: "0.8rem", outline: "none" }}
                     />
-                    <button onClick={addPantryItem} style={{ background: "#34291C", border: "none", borderRadius: "8px", padding: "0.5rem 0.8rem", color: "#F2E9DC", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer" }}>
+                    <button onClick={addPantryItem} style={{ background: PALETTE.border, border: "none", borderRadius: "8px", padding: "0.5rem 0.8rem", color: PALETTE.textPrimary, fontWeight: 600, fontSize: "0.8rem", cursor: "pointer" }}>
                       <Plus size={14} />
                     </button>
                   </div>
                   <button
                     onClick={suggestFromPantry}
                     disabled={suggestLoading}
-                    style={{ width: "100%", background: "#4A7C59", border: "none", borderRadius: "10px", padding: "0.7rem", color: "#F2E9DC", fontWeight: 700, fontSize: "0.85rem", cursor: suggestLoading ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", opacity: suggestLoading ? 0.7 : 1 }}
+                    style={{ width: "100%", background: PALETTE.success, border: "none", borderRadius: "10px", padding: "0.7rem", color: PALETTE.textPrimary, fontWeight: 700, fontSize: "0.85rem", cursor: suggestLoading ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", opacity: suggestLoading ? 0.7 : 1 }}
                   >
                     {suggestLoading ? <Loader2 size={16} className="spin" /> : <Wand2 size={16} />}
                     {suggestLoading ? "Thinking…" : "Suggest recipes"}
                   </button>
-                  {suggestError && <div style={{ fontSize: "0.78rem", color: "#C25450", marginTop: "0.6rem" }}>{suggestError}</div>}
-                  {suggestNotice && <div style={{ fontSize: "0.72rem", color: "#8A7A63", marginTop: "0.6rem" }}>{suggestNotice}</div>}
+                  {suggestError && <div style={{ fontSize: "0.78rem", color: PALETTE.error, marginTop: "0.6rem" }}>{suggestError}</div>}
+                  {suggestNotice && <div style={{ fontSize: "0.72rem", color: PALETTE.textMuted, marginTop: "0.6rem" }}>{suggestNotice}</div>}
                   {!apiKey && (
-                    <div style={{ fontSize: "0.68rem", color: "#5C6E58", marginTop: "0.6rem" }}>Add an API key in ⚙️ Settings for live, tailored suggestions instead of your recipe library.</div>
+                    <div style={{ fontSize: "0.68rem", color: PALETTE.textMutedGreen, marginTop: "0.6rem" }}>Add an API key in ⚙️ Settings for live, tailored suggestions instead of your recipe library.</div>
                   )}
                 </div>
               )}
@@ -5115,37 +5413,36 @@ function BulkTiffin() {
               </div>
             )}
 
-            {/* Saved recipes */}
-            {savedRecipes.length > 0 && (
-              <div style={{ marginTop: "1.75rem" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
-                  <Bookmark size={18} color="#4A7C59" />
-                  <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: "1.15rem", fontWeight: 600, margin: 0 }}>My Recipes</h2>
-                </div>
-                {savedRecipes.map((r, i) => (
-                  <DynamicRecipeCard key={r.name + i} recipe={r} onAddToShopping={addRecipeIngredientsToShopping} onRemove={removeSavedRecipe} onStartCooking={setCookingRecipe} onRemix={openRemix} />
-                ))}
-              </div>
-            )}
-
-            {/* Starter recipes */}
+            {/* Unified recipe library — everything you have local access to, filterable and sortable */}
             <div style={{ marginTop: "1.75rem" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
-                <Utensils size={18} color="#C97C2C" />
-                <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: "1.15rem", fontWeight: 600, margin: 0 }}>Starter recipes</h2>
+                <Utensils size={18} color={PALETTE.accent2} />
+                <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: "1.15rem", fontWeight: 600, margin: 0 }}>
+                  Recipe library <span style={{ fontSize: "0.75rem", color: PALETTE.textMuted, fontWeight: 400 }}>· {libraryRecipes.length}</span>
+                </h2>
               </div>
-              <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginBottom: "0.9rem" }}>
+
+              <input
+                type="text"
+                value={recipeListSearch}
+                onChange={(e) => setRecipeListSearch(e.target.value)}
+                placeholder="Filter your library by name…"
+                style={{ width: "100%", background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: "10px", padding: "0.6rem 0.85rem", color: PALETTE.textPrimary, fontSize: "0.82rem", outline: "none", marginBottom: "0.7rem" }}
+              />
+
+              <div style={{ fontSize: "0.66rem", color: PALETTE.textMutedGreen, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 0.3rem 0.15rem" }}>Category</div>
+              <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginBottom: "0.6rem" }}>
                 {["all", ...Array.from(new Set(RECIPES.map((r) => r.category)))].map((cat) => (
                   <button
                     key={cat}
                     onClick={() => setRecipeFilter(cat)}
                     style={{
-                      background: recipeFilter === cat ? "#E3A008" : "#252019",
-                      border: `1px solid ${recipeFilter === cat ? "#E3A008" : "#34291C"}`,
+                      background: recipeFilter === cat ? PALETTE.accent : PALETTE.surface,
+                      border: `1px solid ${recipeFilter === cat ? PALETTE.accent : PALETTE.border}`,
                       borderRadius: "999px",
-                      padding: "0.35rem 0.75rem",
-                      color: recipeFilter === cat ? "#1C1815" : "#C9BBA3",
-                      fontSize: "0.72rem",
+                      padding: "0.32rem 0.7rem",
+                      color: recipeFilter === cat ? PALETTE.bg : PALETTE.textSecondary,
+                      fontSize: "0.7rem",
                       fontWeight: 700,
                       cursor: "pointer",
                       textTransform: "capitalize",
@@ -5155,69 +5452,115 @@ function BulkTiffin() {
                   </button>
                 ))}
               </div>
-              {RECIPES.filter((r) => recipeFilter === "all" || r.category === recipeFilter).map((r) => {
-                const i = RECIPES.indexOf(r);
-                return (
-                <div key={r.name} className="card-hover" style={{ background: "#252019", borderRadius: "14px", marginBottom: "0.5rem", border: "1px solid #34291C", overflow: "hidden" }}>
+
+              <div style={{ fontSize: "0.66rem", color: PALETTE.textMutedGreen, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 0.3rem 0.15rem" }}>Meal</div>
+              <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginBottom: "0.6rem" }}>
+                {["all", "breakfast", "lunch", "dinner", "snack"].map((slot) => (
                   <button
-                    onClick={() => {
-                      const willOpen = openRecipe !== i;
-                      setOpenRecipe(willOpen ? i : null);
-                      if (willOpen) markRecipeOpened(r.name);
+                    key={slot}
+                    onClick={() => setRecipeSlotFilter(slot)}
+                    style={{
+                      background: recipeSlotFilter === slot ? PALETTE.success : PALETTE.surface,
+                      border: `1px solid ${recipeSlotFilter === slot ? PALETTE.success : PALETTE.border}`,
+                      borderRadius: "999px",
+                      padding: "0.32rem 0.7rem",
+                      color: recipeSlotFilter === slot ? PALETTE.textPrimary : PALETTE.textSecondary,
+                      fontSize: "0.7rem",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      textTransform: "capitalize",
                     }}
-                    style={{ width: "100%", background: "transparent", border: "none", padding: "0.8rem 1rem", display: "flex", alignItems: "center", gap: "0.8rem", cursor: "pointer", color: "#F2E9DC", textAlign: "left" }}
                   >
-                    <RecipePhoto recipe={r} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, fontSize: "0.92rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                        {r.name}
-                        {staleRecipeName === r.name && (
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: "0.2rem", background: "#34291C", color: "#C97C2C", fontSize: "0.62rem", fontWeight: 700, borderRadius: "999px", padding: "0.15rem 0.5rem" }}>
-                            <Clock size={10} /> try me
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ fontSize: "0.75rem", color: "#8A7A63" }}>{r.cal}</div>
-                    </div>
-                    <ChevronDown size={18} color="#8A7A63" style={{ transform: openRecipe === i ? "rotate(180deg)" : "none", transition: "transform 0.2s", flexShrink: 0 }} />
+                    {slot}
                   </button>
-                  {openRecipe === i && (
-                    <div className="fade-in" style={{ padding: "0 1rem 1rem" }}>
-                      <ol style={{ margin: 0, padding: "0 0 0.75rem 1.1rem", fontSize: "0.85rem", color: "#C9BBA3", lineHeight: 1.6 }}>
-                        {r.steps.map((s, si) => (
-                          <li key={si} style={{ marginBottom: "0.3rem" }}>
-                            {s}
-                          </li>
-                        ))}
-                      </ol>
-                      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                        <button
-                          onClick={() => {
-                            setCookingRecipe(r);
-                            markRecipeOpened(r.name);
-                          }}
-                          style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: "#E3A008", border: "none", borderRadius: "8px", padding: "0.5rem 0.8rem", color: "#1C1815", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}
-                        >
-                          <Play size={13} /> Start cooking
-                        </button>
-                        <button
-                          onClick={() => addRecipeIngredientsToShopping(r)}
-                          style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: "#34291C", border: "none", borderRadius: "8px", padding: "0.5rem 0.8rem", color: "#E3A008", fontSize: "0.78rem", fontWeight: 600, cursor: "pointer" }}
-                        >
-                          <ShoppingBasket size={14} /> Add missing ingredients to list
-                        </button>
-                        <button
-                          onClick={() => openRemix(r)}
-                          style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: "#34291C", border: "none", borderRadius: "8px", padding: "0.5rem 0.8rem", color: "#C97C2C", fontSize: "0.78rem", fontWeight: 600, cursor: "pointer" }}
-                        >
-                          <Shuffle size={13} /> Remix
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                ))}
+              </div>
+
+              <div style={{ fontSize: "0.66rem", color: PALETTE.textMutedGreen, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 0.3rem 0.15rem" }}>Diet</div>
+              <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginBottom: "0.6rem" }}>
+                {[
+                  { id: "all", label: "All" },
+                  { id: "veg", label: "Veg" },
+                  { id: "egg", label: "Egg" },
+                  { id: "nonveg", label: "Non-veg" },
+                ].map((d) => (
+                  <button
+                    key={d.id}
+                    onClick={() => setRecipeDietFilter(d.id)}
+                    style={{
+                      background: recipeDietFilter === d.id ? PALETTE.accent2 : PALETTE.surface,
+                      border: `1px solid ${recipeDietFilter === d.id ? PALETTE.accent2 : PALETTE.border}`,
+                      borderRadius: "999px",
+                      padding: "0.32rem 0.7rem",
+                      color: recipeDietFilter === d.id ? PALETTE.bg : PALETTE.textSecondary,
+                      fontSize: "0.7rem",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ fontSize: "0.66rem", color: PALETTE.textMutedGreen, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 0.3rem 0.15rem" }}>Sort</div>
+              <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginBottom: "1rem" }}>
+                {[
+                  { id: "default", label: "Default" },
+                  { id: "az", label: "A–Z" },
+                  { id: "cal-desc", label: "Calories ↓" },
+                  { id: "cal-asc", label: "Calories ↑" },
+                  { id: "tryme", label: "Haven't tried" },
+                  { id: "favorites", label: "★ Favorites" },
+                ].map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => setRecipeSort(s.id)}
+                    style={{
+                      background: recipeSort === s.id ? PALETTE.surface : "transparent",
+                      border: `1px solid ${recipeSort === s.id ? PALETTE.accent : PALETTE.border}`,
+                      borderRadius: "999px",
+                      padding: "0.32rem 0.7rem",
+                      color: recipeSort === s.id ? PALETTE.accent : PALETTE.textMuted,
+                      fontSize: "0.7rem",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+
+              {libraryRecipes.length ? (
+                libraryRecipes.map((r, i) => (
+                  <DynamicRecipeCard
+                    key={r.name + i}
+                    recipe={r}
+                    onAddToShopping={addRecipeIngredientsToShopping}
+                    onRemove={isSavedRecipe(r.name) ? removeSavedRecipe : undefined}
+                    onStartCooking={(rec) => {
+                      setCookingRecipe(rec);
+                      markRecipeOpened(rec.name);
+                    }}
+                    onOpen={markRecipeOpened}
+                    onRemix={openRemix}
+                    isFavorite={favorites.includes(r.name)}
+                    onToggleFavorite={toggleFavorite}
+                    badge={
+                      staleRecipeName === r.name && (
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "0.2rem", background: PALETTE.border, color: PALETTE.accent2, fontSize: "0.62rem", fontWeight: 700, borderRadius: "999px", padding: "0.15rem 0.5rem" }}>
+                          <Clock size={10} /> try me
+                        </span>
+                      )
+                    }
+                  />
+                ))
+              ) : (
+                <div style={{ background: PALETTE.surface, borderRadius: "14px", border: `1px solid ${PALETTE.border}`, padding: "1rem", fontSize: "0.82rem", color: PALETTE.textMuted, textAlign: "center" }}>
+                  No recipes match those filters — try loosening them.
                 </div>
-                );
-              })}
+              )}
             </div>
           </div>
         )}
@@ -5227,15 +5570,23 @@ function BulkTiffin() {
             <PageBanner illustration={<BasketIllustration />} title="Shop" subtitle="Only the real gaps, nothing you already have" />
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.75rem" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                <ShoppingBasket size={18} color="#E3A008" />
+                <ShoppingBasket size={18} color={PALETTE.accent} />
                 <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: "1.15rem", fontWeight: 600, margin: 0 }}>Shopping list</h2>
               </div>
-              <button
-                onClick={() => shareShoppingList(shopping.filter((s) => !s.checked))}
-                style={{ display: "flex", alignItems: "center", gap: "0.3rem", background: "#252019", border: "1px solid #34291C", borderRadius: "999px", padding: "0.35rem 0.7rem", color: "#8A7A63", fontSize: "0.72rem", fontWeight: 600, cursor: "pointer" }}
-              >
-                <Share2 size={12} /> Share
-              </button>
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <button
+                  onClick={() => copyShoppingList(shopping.filter((s) => !s.checked))}
+                  style={{ display: "flex", alignItems: "center", gap: "0.3rem", background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: "999px", padding: "0.35rem 0.7rem", color: PALETTE.textMuted, fontSize: "0.72rem", fontWeight: 600, cursor: "pointer" }}
+                >
+                  <Copy size={12} /> Copy
+                </button>
+                <button
+                  onClick={() => shareShoppingList(shopping.filter((s) => !s.checked))}
+                  style={{ display: "flex", alignItems: "center", gap: "0.3rem", background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: "999px", padding: "0.35rem 0.7rem", color: PALETTE.textMuted, fontSize: "0.72rem", fontWeight: 600, cursor: "pointer" }}
+                >
+                  <Share2 size={12} /> Share
+                </button>
+              </div>
             </div>
 
             {/* Manual add */}
@@ -5251,14 +5602,14 @@ function BulkTiffin() {
                   }
                 }}
                 placeholder="Add an item (e.g. 2 dozen eggs)"
-                style={{ flex: 1, background: "#252019", border: "1px solid #34291C", borderRadius: "10px", padding: "0.65rem 0.9rem", color: "#F2E9DC", fontSize: "0.85rem", outline: "none" }}
+                style={{ flex: 1, background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: "10px", padding: "0.65rem 0.9rem", color: PALETTE.textPrimary, fontSize: "0.85rem", outline: "none" }}
               />
               <button
                 onClick={() => {
                   addManualShoppingItem(shoppingInput);
                   setShoppingInput("");
                 }}
-                style={{ background: "#4A7C59", border: "none", borderRadius: "10px", padding: "0.65rem 1rem", color: "#F2E9DC", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center" }}
+                style={{ background: PALETTE.success, border: "none", borderRadius: "10px", padding: "0.65rem 1rem", color: PALETTE.textPrimary, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center" }}
               >
                 <Plus size={16} />
               </button>
@@ -5289,22 +5640,22 @@ function BulkTiffin() {
                         width: "22px",
                         height: "22px",
                         borderRadius: "6px",
-                        border: s.checked ? "none" : "2px solid #4A3E2C",
-                        background: s.checked ? "#4A7C59" : "transparent",
+                        border: s.checked ? "none" : `2px solid ${PALETTE.borderLight}`,
+                        background: s.checked ? PALETTE.success : "transparent",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         flexShrink: 0,
                       }}
                     >
-                      {s.checked && <Check size={14} color="#F2E9DC" strokeWidth={3} className="check-pop" />}
+                      {s.checked && <Check size={14} color={PALETTE.textPrimary} strokeWidth={3} className="check-pop" />}
                     </div>
-                    <span style={{ fontSize: "0.9rem", color: s.checked ? "#5C6E58" : "#F2E9DC", textDecoration: showStrike && s.checked ? "line-through" : "none" }}>{s.item}</span>
+                    <span style={{ fontSize: "0.9rem", color: s.checked ? PALETTE.textMutedGreen : PALETTE.textPrimary, textDecoration: showStrike && s.checked ? "line-through" : "none" }}>{s.item}</span>
                   </button>
                   {extraAction}
                   {onDelete && (
                     <button onClick={onDelete} title="Remove from list" style={{ background: "transparent", border: "none", cursor: "pointer", padding: "0.2rem", flexShrink: 0 }}>
-                      <X size={14} color="#8A7A63" />
+                      <X size={14} color={PALETTE.textMuted} />
                     </button>
                   )}
                 </div>
@@ -5313,29 +5664,29 @@ function BulkTiffin() {
               return (
                 <>
                   <div style={{ marginBottom: "0.5rem" }}>
-                    <div style={{ fontSize: "0.72rem", color: "#8A7A63", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 0.4rem 0.2rem" }}>
+                    <div style={{ fontSize: "0.72rem", color: PALETTE.textMuted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 0.4rem 0.2rem" }}>
                       Need to buy · {needToBuy.length}
                     </div>
                     {needToBuy.length ? (
                       AISLE_ORDER.filter((aisle) => grouped[aisle] && grouped[aisle].length).map((aisle) => (
                         <div key={aisle} style={{ marginBottom: "0.6rem" }}>
-                          <div style={{ fontSize: "0.68rem", color: "#5C6E58", fontWeight: 600, margin: "0 0 0.25rem 0.3rem" }}>{aisle}</div>
-                          <div style={{ background: "#252019", borderRadius: "14px", border: "1px solid #34291C", padding: "0.2rem" }}>
+                          <div style={{ fontSize: "0.68rem", color: PALETTE.textMutedGreen, fontWeight: 600, margin: "0 0 0.25rem 0.3rem" }}>{aisle}</div>
+                          <div style={{ background: PALETTE.surface, borderRadius: "14px", border: `1px solid ${PALETTE.border}`, padding: "0.2rem" }}>
                             {grouped[aisle].map((s) => renderRow(s, { showStrike: true, onDelete: () => removeShoppingItem(s.idx) }))}
                           </div>
                         </div>
                       ))
                     ) : (
-                      <div style={{ background: "#252019", borderRadius: "14px", border: "1px solid #34291C", padding: "0.9rem 0.6rem", fontSize: "0.82rem", color: "#8A7A63" }}>Nothing left to buy 🎉</div>
+                      <div style={{ background: PALETTE.surface, borderRadius: "14px", border: `1px solid ${PALETTE.border}`, padding: "0.9rem 0.6rem", fontSize: "0.82rem", color: PALETTE.textMuted }}>Nothing left to buy 🎉</div>
                     )}
                   </div>
 
                   {alreadyHave.length > 0 && (
                     <div style={{ marginBottom: "0.5rem" }}>
-                      <div style={{ fontSize: "0.72rem", color: "#8A7A63", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0.9rem 0 0.4rem 0.2rem" }}>
+                      <div style={{ fontSize: "0.72rem", color: PALETTE.textMuted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0.9rem 0 0.4rem 0.2rem" }}>
                         Already in your pantry · {alreadyHave.length}
                       </div>
-                      <div style={{ background: "#1F1A14", borderRadius: "14px", border: "1px solid #34291C", padding: "0.2rem", opacity: 0.85 }}>
+                      <div style={{ background: PALETTE.surfaceDark, borderRadius: "14px", border: `1px solid ${PALETTE.border}`, padding: "0.2rem", opacity: 0.85 }}>
                         {alreadyHave.map((s) =>
                           renderRow(s, {
                             showStrike: false,
@@ -5346,7 +5697,7 @@ function BulkTiffin() {
                                 title="Actually, I need to buy this"
                                 style={{ background: "transparent", border: "none", cursor: "pointer", padding: "0.2rem", flexShrink: 0 }}
                               >
-                                <RotateCcw size={13} color="#8A7A63" />
+                                <RotateCcw size={13} color={PALETTE.textMuted} />
                               </button>
                             ),
                           })
@@ -5358,12 +5709,12 @@ function BulkTiffin() {
                   {bought.length > 0 && (
                     <div>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "0.9rem 0 0.4rem 0.2rem" }}>
-                        <div style={{ fontSize: "0.72rem", color: "#8A7A63", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Bought · {bought.length}</div>
-                        <button onClick={clearBoughtItems} style={{ background: "transparent", border: "none", color: "#C97C2C", fontSize: "0.72rem", fontWeight: 600, cursor: "pointer" }}>
+                        <div style={{ fontSize: "0.72rem", color: PALETTE.textMuted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Bought · {bought.length}</div>
+                        <button onClick={clearBoughtItems} style={{ background: "transparent", border: "none", color: PALETTE.accent2, fontSize: "0.72rem", fontWeight: 600, cursor: "pointer" }}>
                           Clear
                         </button>
                       </div>
-                      <div style={{ background: "#1F1A14", borderRadius: "14px", border: "1px solid #34291C", padding: "0.2rem" }}>
+                      <div style={{ background: PALETTE.surfaceDark, borderRadius: "14px", border: `1px solid ${PALETTE.border}`, padding: "0.2rem" }}>
                         {bought.map((s) => renderRow(s, { showStrike: true, onDelete: () => removeShoppingItem(s.idx) }))}
                       </div>
                     </div>
@@ -5384,7 +5735,7 @@ function BulkTiffin() {
           right: 0,
           background: "rgba(28,24,21,0.95)",
           backdropFilter: "blur(8px)",
-          borderTop: "1px solid #34291C",
+          borderTop: `1px solid ${PALETTE.border}`,
           zIndex: 30,
         }}
       >
@@ -5396,9 +5747,22 @@ function BulkTiffin() {
               bottom: "calc(0.5rem + env(safe-area-inset-bottom))",
               left: `calc(0.5rem + ${NAV_ITEMS.findIndex((i) => i.id === tab)} * (100% - 1rem) / ${NAV_ITEMS.length})`,
               width: `calc((100% - 1rem) / ${NAV_ITEMS.length})`,
-              background: "#252019",
+              background: PALETTE.surface,
               borderRadius: "12px",
               transition: "left 0.3s cubic-bezier(.4,0,.2,1)",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: `calc(${NAV_ITEMS.findIndex((i) => i.id === tab)} * (100% / ${NAV_ITEMS.length}) + (100% / ${NAV_ITEMS.length} / 2) - 12px)`,
+              width: "24px",
+              height: "3px",
+              borderRadius: "0 0 3px 3px",
+              background: PALETTE.accent,
+              transition: "left 0.3s cubic-bezier(.4,0,.2,1)",
+              boxShadow: `0 0 6px ${PALETTE.accent}88`,
             }}
           />
           {NAV_ITEMS.map((item) => {
@@ -5419,12 +5783,37 @@ function BulkTiffin() {
                   alignItems: "center",
                   gap: "0.25rem",
                   cursor: "pointer",
-                  color: active ? "#E3A008" : "#8A7A63",
+                  color: active ? PALETTE.accent : PALETTE.textMuted,
                   position: "relative",
                   zIndex: 1,
                 }}
               >
-                <Icon size={20} strokeWidth={active ? 2.4 : 2} />
+                <div style={{ position: "relative" }}>
+                  <Icon size={20} strokeWidth={active ? 2.4 : 2} />
+                  {item.id === "today" && streakData.streak > 0 && (
+                    <span
+                      style={{
+                        position: "absolute",
+                        top: "-6px",
+                        right: "-10px",
+                        background: PALETTE.accent,
+                        color: PALETTE.bg,
+                        fontSize: "0.55rem",
+                        fontWeight: 800,
+                        borderRadius: "999px",
+                        minWidth: "14px",
+                        height: "14px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: "0 3px",
+                        lineHeight: 1,
+                      }}
+                    >
+                      {streakData.streak}
+                    </span>
+                  )}
+                </div>
                 <span style={{ fontSize: "0.66rem", fontWeight: active ? 700 : 500 }}>{item.label}</span>
               </button>
             );
@@ -5440,19 +5829,19 @@ function BulkTiffin() {
             bottom: "5.5rem",
             left: "50%",
             transform: "translateX(-50%)",
-            background: "#252019",
-            border: "1px solid #34291C",
+            background: PALETTE.surface,
+            border: `1px solid ${PALETTE.border}`,
             borderRadius: "10px",
             padding: "0.6rem 1.1rem",
             fontSize: "0.85rem",
-            color: "#F2E9DC",
+            color: PALETTE.textPrimary,
             display: "flex",
             alignItems: "center",
             gap: "0.4rem",
             zIndex: 40,
           }}
         >
-          <Sparkles size={14} color="#E3A008" /> {toast}
+          <Sparkles size={14} color={PALETTE.accent} /> {toast}
         </div>
       )}
     </div>
