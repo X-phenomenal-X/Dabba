@@ -1,7 +1,5 @@
-const CACHE_NAME = "dabba-cache-v2";
+const CACHE_NAME = "dabba-cache-v3";
 const APP_SHELL = [
-  "./",
-  "./index.html",
   "./manifest.json",
   "./icon-192.png",
   "./icon-512.png",
@@ -31,13 +29,30 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// Cache-first for the app shell itself; everything else (CDN scripts, API calls)
-// goes straight to the network so the app and its AI features stay current.
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   const isAppShell = url.origin === self.location.origin;
-  if (!isAppShell) return; // let CDN/API requests pass through untouched
+  if (!isAppShell) return; // let CDN/API requests pass through untouched, never cached
 
+  const isHtmlOrNav = event.request.mode === "navigate" || url.pathname.endsWith("index.html") || url.pathname === "/" || url.pathname.endsWith("/");
+
+  if (isHtmlOrNav) {
+    // Network-first for the app itself: always fetch the latest index.html when online,
+    // so updates actually reach the installed app instead of being stuck on an old cached
+    // copy forever. Only fall back to cache when genuinely offline.
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // Cache-first for static assets (icons, splash screens) that rarely change.
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) return cached;
