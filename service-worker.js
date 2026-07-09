@@ -1,5 +1,19 @@
-const CACHE_NAME = "dabba-cache-v1";
-const APP_SHELL = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
+const CACHE_NAME = "dabba-cache-v2";
+const APP_SHELL = [
+  "./",
+  "./index.html",
+  "./manifest.json",
+  "./icon-192.png",
+  "./icon-512.png",
+  "./icon-180.png",
+  "./splash-iphonese-8.png",
+  "./splash-iphone11-xr.png",
+  "./splash-iphonex-xs-11pro.png",
+  "./splash-iphone12-13.png",
+  "./splash-iphone14-15pro.png",
+  "./splash-iphone13-14promax-alt.png",
+  "./splash-iphone14-15promax.png",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

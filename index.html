@@ -13,6 +13,14 @@
 <link rel="manifest" href="manifest.json" />
 <link rel="apple-touch-icon" href="icon-180.png" />
 <link rel="icon" href="icon-192.png" />
+
+<link rel="apple-touch-startup-image" href="splash-iphonese-8.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" />
+<link rel="apple-touch-startup-image" href="splash-iphone11-xr.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" />
+<link rel="apple-touch-startup-image" href="splash-iphonex-xs-11pro.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" />
+<link rel="apple-touch-startup-image" href="splash-iphone12-13.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)" />
+<link rel="apple-touch-startup-image" href="splash-iphone14-15pro.png" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3)" />
+<link rel="apple-touch-startup-image" href="splash-iphone13-14promax-alt.png" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3)" />
+<link rel="apple-touch-startup-image" href="splash-iphone14-15promax.png" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)" />
 <style>
   html, body { margin: 0; padding: 0; background: #1C1815; }
   #root { min-height: 100vh; }
@@ -31,43 +39,176 @@
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
 <script>
-// ---- window.storage shim backed by real browser localStorage ----
-// Matches the same async get/set/delete/list interface the app already uses,
-// so no application logic needs to change. "shared" is ignored since this is
-// a single-user standalone app (no multi-user backend).
+// ---- window.storage: IndexedDB-backed, matching the same get/set/delete/list interface ----
+// IndexedDB is async (no main-thread blocking), not string-only, and available to service
+// workers — a more resilient choice than localStorage for a no-backend personal tracker.
+// On first run, any data previously saved under localStorage (the old shim) is copied over
+// automatically so nothing already logged gets lost by this upgrade.
 (function () {
-  const PREFIX = "bulktiffin:";
+  const DB_NAME = "bulktiffin-db";
+  const STORE_NAME = "kv";
+  const OLD_PREFIX = "bulktiffin:"; // localStorage prefix used by the previous shim
 
-  function readAll() {
-    const out = {};
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k && k.startsWith(PREFIX)) {
-        out[k.slice(PREFIX.length)] = localStorage.getItem(k);
-      }
-    }
-    return out;
+  let dbPromise = null;
+
+  function openDB() {
+    if (dbPromise) return dbPromise;
+    dbPromise = new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = () => {
+        if (!req.result.objectStoreNames.contains(STORE_NAME)) {
+          req.result.createObjectStore(STORE_NAME);
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    return dbPromise;
   }
+
+  function txDone(tx) {
+    return new Promise((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+  }
+
+  async function rawGet(key) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readonly");
+      const req = tx.objectStore(STORE_NAME).get(key);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function rawSet(key, value) {
+    const db = await openDB();
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    tx.objectStore(STORE_NAME).put(value, key);
+    await txDone(tx);
+  }
+
+  async function rawDelete(key) {
+    const db = await openDB();
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    tx.objectStore(STORE_NAME).delete(key);
+    await txDone(tx);
+  }
+
+  async function rawGetAllEntries() {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readonly");
+      const store = tx.objectStore(STORE_NAME);
+      const keysReq = store.getAllKeys();
+      const valsReq = store.getAll();
+      let keys, vals;
+      function maybeResolve() {
+        if (keys !== undefined && vals !== undefined) {
+          const out = {};
+          keys.forEach((k, i) => (out[k] = vals[i]));
+          resolve(out);
+        }
+      }
+      keysReq.onsuccess = () => {
+        keys = keysReq.result;
+        maybeResolve();
+      };
+      valsReq.onsuccess = () => {
+        vals = valsReq.result;
+        maybeResolve();
+      };
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  // One-time migration: if IndexedDB is empty but the old localStorage-based shim has data,
+  // copy it all over. Runs once; safe to call every load (no-op after the first time).
+  async function migrateFromLocalStorageIfNeeded() {
+    try {
+      const existing = await rawGetAllEntries();
+      if (Object.keys(existing).length > 0) return; // already has data, don't touch it
+      const migrated = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith(OLD_PREFIX)) {
+          migrated[k.slice(OLD_PREFIX.length)] = localStorage.getItem(k);
+        }
+      }
+      const keys = Object.keys(migrated);
+      if (!keys.length) return;
+      for (const k of keys) {
+        await rawSet(k, migrated[k]);
+      }
+      console.log(`[storage] migrated ${keys.length} keys from localStorage to IndexedDB`);
+    } catch (e) {
+      console.warn("[storage] migration skipped:", e);
+    }
+  }
+
+  const migrationDone = migrateFromLocalStorageIfNeeded();
 
   window.storage = {
     async get(key, shared) {
-      const raw = localStorage.getItem(PREFIX + key);
-      if (raw === null) return null;
+      await migrationDone;
+      const raw = await rawGet(key);
+      if (raw === undefined) return null;
       return { key, value: raw, shared: !!shared };
     },
     async set(key, value, shared) {
-      localStorage.setItem(PREFIX + key, value);
+      await migrationDone;
+      await rawSet(key, value);
       return { key, value, shared: !!shared };
     },
     async delete(key, shared) {
-      const existed = localStorage.getItem(PREFIX + key) !== null;
-      localStorage.removeItem(PREFIX + key);
-      return { key, deleted: existed, shared: !!shared };
+      await migrationDone;
+      const existing = await rawGet(key);
+      await rawDelete(key);
+      return { key, deleted: existing !== undefined, shared: !!shared };
     },
     async list(prefix, shared) {
-      const all = readAll();
+      await migrationDone;
+      const all = await rawGetAllEntries();
       const keys = Object.keys(all).filter((k) => !prefix || k.startsWith(prefix));
       return { keys, prefix: prefix || undefined, shared: !!shared };
+    },
+    // ---- Backup / restore helpers (not part of the original interface, used by Settings) ----
+    async exportAll() {
+      await migrationDone;
+      const entries = await rawGetAllEntries();
+      return { exportedAt: new Date().toISOString(), app: "todays-dabba", version: 1, data: entries };
+    },
+    async importAll(payload) {
+      await migrationDone;
+      if (!payload || typeof payload.data !== "object") throw new Error("Invalid backup file");
+      const entries = payload.data;
+      for (const k of Object.keys(entries)) {
+        await rawSet(k, entries[k]);
+      }
+      return Object.keys(entries).length;
+    },
+    async usageEstimate() {
+      if (navigator.storage && navigator.storage.estimate) {
+        try {
+          return await navigator.storage.estimate();
+        } catch (e) {
+          return null;
+        }
+      }
+      return null;
+    },
+    async requestPersistence() {
+      if (navigator.storage && navigator.storage.persist) {
+        try {
+          return await navigator.storage.persist();
+        } catch (e) {
+          return false;
+        }
+      }
+      return false;
     },
   };
 })();
@@ -2165,6 +2306,12 @@ function BulkTiffin() {
   const [calorieTarget, setCalorieTarget] = useState(CALORIE_TARGET);
   const [apiKey, setApiKey] = useState("");
   const [apiKeyInput, setApiKeyInput] = useState("");
+  const [lastBackupAt, setLastBackupAt] = useState(null);
+  const [persistenceGranted, setPersistenceGranted] = useState(false);
+  const [storageEstimate, setStorageEstimate] = useState(null);
+  const [importError, setImportError] = useState("");
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const importFileRef = useRef(null);
   const [proteinTarget, setProteinTarget] = useState(PROTEIN_TARGET);
   const [showSettings, setShowSettings] = useState(false);
   const [calorieTargetInput, setCalorieTargetInput] = useState("");
@@ -2284,10 +2431,46 @@ function BulkTiffin() {
         const tov = await window.storage.get("task-overrides", false);
         if (tov) setTaskOverrides(JSON.parse(tov.value));
       } catch (e) {}
+      try {
+        const lb = await window.storage.get("last-backup-at", false);
+        if (lb) setLastBackupAt(JSON.parse(lb.value));
+      } catch (e) {}
+      try {
+        const granted = await window.storage.requestPersistence();
+        setPersistenceGranted(granted);
+      } catch (e) {}
+      try {
+        const est = await window.storage.usageEstimate();
+        setStorageEstimate(est);
+      } catch (e) {}
 
       setLoaded(true);
     })();
   }, []);
+
+  // Show a one-time "add to home screen" coaching banner if running in a regular
+  // Safari tab rather than installed — installing exempts the app from iOS's
+  // 7-day storage eviction policy, so this matters for data safety too.
+  useEffect(() => {
+    if (!loaded) return;
+    const isStandalone = window.navigator.standalone === true || window.matchMedia("(display-mode: standalone)").matches;
+    if (isStandalone) return;
+    (async () => {
+      try {
+        const dismissed = await window.storage.get("install-banner-dismissed", false);
+        if (!dismissed) setShowInstallBanner(true);
+      } catch (e) {
+        setShowInstallBanner(true);
+      }
+    })();
+  }, [loaded]);
+
+  const dismissInstallBanner = async () => {
+    setShowInstallBanner(false);
+    try {
+      await window.storage.set("install-banner-dismissed", JSON.stringify(true), false);
+    } catch (e) {}
+  };
 
   // Check once a minute whether the calendar date has rolled over.
   useEffect(() => {
@@ -2828,6 +3011,54 @@ function BulkTiffin() {
     } catch (e) {}
   };
 
+  const exportBackup = async () => {
+    try {
+      const payload = await window.storage.exportAll();
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const dateStr = todayKey();
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `dabba-backup-${dateStr}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      const now = Date.now();
+      setLastBackupAt(now);
+      await window.storage.set("last-backup-at", JSON.stringify(now), false);
+      showToast("Backup downloaded");
+    } catch (e) {
+      showToast("Backup failed — try again");
+    }
+  };
+
+  const handleImportFile = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    setImportError("");
+    try {
+      const text = await file.text();
+      const payload = JSON.parse(text);
+      if (!payload || payload.app !== "todays-dabba" || typeof payload.data !== "object") {
+        throw new Error("This doesn't look like a Today's Dabba backup file.");
+      }
+      const confirmed = window.confirm(
+        `This will replace your current data with the backup from ${payload.exportedAt ? new Date(payload.exportedAt).toLocaleString() : "an unknown date"}. Continue?`
+      );
+      if (!confirmed) {
+        e.target.value = "";
+        return;
+      }
+      const count = await window.storage.importAll(payload);
+      showToast(`Restored ${count} items — reloading…`);
+      setTimeout(() => window.location.reload(), 1200);
+    } catch (err) {
+      setImportError(err.message || "Couldn't read that file — make sure it's a Dabba backup.");
+    }
+    e.target.value = "";
+  };
+
   const taskKcal = (t) => (taskOverrides[t.id] !== undefined ? taskOverrides[t.id] : t.kcal);
 
   const markRecipeOpened = async (name) => {
@@ -3312,6 +3543,38 @@ function BulkTiffin() {
               </div>
             </div>
 
+            <div style={{ marginBottom: "1.25rem", background: "#1F1A14", borderRadius: "12px", padding: "0.9rem", border: "1px solid #34291C" }}>
+              <label style={{ fontSize: "0.78rem", color: "#8A7A63", fontWeight: 600 }}>Backup & storage</label>
+              <div style={{ fontSize: "0.72rem", color: "#8A7A63", marginTop: "0.35rem", lineHeight: 1.5 }}>
+                Your data lives only on this device. Since browsers can occasionally clear storage, back it up as a file every so often — especially before clearing Safari history or getting a new phone.
+                <br />
+                {lastBackupAt ? `Last backup: ${new Date(lastBackupAt).toLocaleDateString()}` : "No backup taken yet"}
+                {storageEstimate && storageEstimate.usage !== undefined && (
+                  <>
+                    {" · "}
+                    {(storageEstimate.usage / 1024).toFixed(0)} KB used
+                  </>
+                )}
+                {persistenceGranted && " · protected storage ✓"}
+              </div>
+              <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.6rem" }}>
+                <button
+                  onClick={exportBackup}
+                  style={{ flex: 1, background: "#4A7C59", border: "none", borderRadius: "8px", padding: "0.55rem", color: "#F2E9DC", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer" }}
+                >
+                  Export backup
+                </button>
+                <button
+                  onClick={() => importFileRef.current && importFileRef.current.click()}
+                  style={{ flex: 1, background: "#34291C", border: "none", borderRadius: "8px", padding: "0.55rem", color: "#E3A008", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer" }}
+                >
+                  Import backup
+                </button>
+                <input ref={importFileRef} type="file" accept="application/json,.json" onChange={handleImportFile} style={{ display: "none" }} />
+              </div>
+              {importError && <div style={{ fontSize: "0.7rem", color: "#C25450", marginTop: "0.5rem" }}>{importError}</div>}
+            </div>
+
             <div style={{ marginBottom: "1.25rem" }}>
               <label style={{ fontSize: "0.78rem", color: "#8A7A63" }}>Anthropic API key — enables recipe search, remix, and photo logging</label>
               <input
@@ -3426,6 +3689,31 @@ function BulkTiffin() {
         </div>
       </div>
 
+      {/* Install coaching banner — installing exempts the app from iOS storage eviction */}
+      {showInstallBanner && (
+        <div
+          className="fade-in"
+          style={{
+            maxWidth: "480px",
+            margin: "0.75rem auto 0",
+            padding: "0 1.25rem",
+            position: "relative",
+            zIndex: 1,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "flex-start", gap: "0.7rem", background: "#2A2416", border: "1px solid #4A3E1C", borderRadius: "14px", padding: "0.85rem 1rem" }}>
+            <span style={{ fontSize: "1.1rem" }}>📲</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: "0.8rem", color: "#E8DCC5", lineHeight: 1.5 }}>
+                For safer, permanent storage, add this to your home screen: tap the Share icon in Safari → <strong>Add to Home Screen</strong>.
+              </div>
+              <button onClick={dismissInstallBanner} style={{ marginTop: "0.4rem", background: "transparent", border: "none", color: "#C97C2C", fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", padding: 0 }}>
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Page content */}
       <div key={tab} className="page-enter" style={{ maxWidth: "480px", margin: "0 auto", position: "relative", zIndex: 1 }}>
