@@ -482,6 +482,17 @@ function Lightbulb(props) {
     </IconBase>
   );
 }
+function Share2(props) {
+  return (
+    <IconBase {...props}>
+      <circle cx="18" cy="5" r="3" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="19" r="3" />
+      <line x1="8.6" y1="10.5" x2="15.4" y2="6.5" />
+      <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" />
+    </IconBase>
+  );
+}
 
 </script>
 
@@ -1541,6 +1552,23 @@ function suggestEatNowOffline(excludeName) {
   return { name: pick.name, why: `A ${slot} pick from your recipe library, ready to cook.`, kcal };
 }
 
+// Matches selected pantry ingredients against the recipe library's ingredient lists,
+// scoring by overlap, so "suggest from what I have" always returns something useful
+// even without a live AI call.
+function suggestFromPantryOffline(selectedItems) {
+  const selectedLower = selectedItems.map((s) => s.toLowerCase());
+  const scored = RECIPES.map((r) => {
+    const ingLower = (r.ingredients || []).map((i) => i.toLowerCase());
+    const score = selectedLower.filter((sel) => ingLower.some((ing) => ing.includes(sel) || sel.includes(ing))).length;
+    return { recipe: r, score };
+  });
+  scored.sort((a, b) => b.score - a.score);
+  const matched = scored.filter((s) => s.score > 0).slice(0, 2).map((s) => s.recipe);
+  if (matched.length) return matched;
+  // Nothing overlapped at all — still return something rather than nothing.
+  return shuffle(RECIPES).slice(0, 2);
+}
+
 const SHOPPING_DEFAULT = ["Chicken or paneer", "Toor or moong dal", "Regular full-fat peanut butter", "Onion", "Tomato"];
 
 // Built-in nutrition lookup — works fully offline, no network dependency.
@@ -1642,6 +1670,12 @@ const PANTRY_DEFAULT = [
   "Onion", "Tomato", "Instant noodles", "Peanut butter",
 ];
 
+// TheMealDB's free-tier categories — each has real recipes with photos and full instructions.
+const MEALDB_CATEGORIES = [
+  "Chicken", "Beef", "Pork", "Lamb", "Goat", "Seafood", "Pasta", "Vegetarian",
+  "Vegan", "Breakfast", "Dessert", "Side", "Starter", "Miscellaneous",
+];
+
 function todayKey(offset = 0) {
   const d = new Date();
   d.setDate(d.getDate() + offset);
@@ -1688,7 +1722,6 @@ function computeTrend(weights, alpha = 0.15) {
   });
 }
 
-// Animated circular progress ring — used for calorie / protein daily targets.
 // A friendly tiffin-box mascot whose face reflects today's progress.
 function Mascot({ pct, size = 108 }) {
   const mood = pct >= 100 ? "thrilled" : pct >= 50 ? "happy" : pct > 0 ? "content" : "sleepy";
@@ -1869,8 +1902,6 @@ function getFoodishCategory(recipe) {
   return null;
 }
 
-// Real food photo (from the free Foodish API) with a graceful fallback to the
-// hand-drawn illustration if there's no good category match or the fetch fails.
 // Strips qualifier words so recipe names match better against TheMealDB's search index
 // (e.g. "Beginner Dal-Rice-Egg Bhurji" -> "Dal-Rice-Egg Bhurji").
 function cleanRecipeNameForSearch(name) {
@@ -1880,12 +1911,19 @@ function cleanRecipeNameForSearch(name) {
     .trim();
 }
 
+// Real food photo (from the free Foodish API) with a graceful fallback to the
+// hand-drawn illustration if there's no good category match or the fetch fails.
 function RecipePhoto({ recipe, size = 52 }) {
   const foodishCat = useMemo(() => getFoodishCategory(recipe), [recipe.name, recipe.category]);
-  const [photoUrl, setPhotoUrl] = useState(null);
+  const [photoUrl, setPhotoUrl] = useState(recipe.photoUrl || null);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
+    if (recipe.photoUrl) {
+      setPhotoUrl(recipe.photoUrl);
+      setFailed(false);
+      return;
+    }
     let cancelled = false;
     setPhotoUrl(null);
     setFailed(false);
@@ -1918,7 +1956,7 @@ function RecipePhoto({ recipe, size = 52 }) {
     return () => {
       cancelled = true;
     };
-  }, [foodishCat, recipe.name]);
+  }, [foodishCat, recipe.name, recipe.photoUrl]);
 
   if (failed) {
     return <DishIllustration category={recipe.category || inferCategory(recipe.name)} size={size} />;
@@ -1990,6 +2028,7 @@ function Dabba3D({ size = 90 }) {
   );
 }
 
+// Animated circular progress ring — used for calorie / protein daily targets.
 function Ring({ pct, size = 84, stroke = 9, color, label, value, target, unit }) {
   const r = (size - stroke) / 2;
   const circ = 2 * Math.PI * r;
@@ -2101,6 +2140,39 @@ function normalizeRecipe(r) {
     category: r.category || inferCategory(r.name),
     ingredients: Array.isArray(r.ingredients) ? r.ingredients : [],
     steps: Array.isArray(r.steps) && r.steps.length ? r.steps : ["No steps returned — try searching again."],
+  };
+}
+
+// Converts a TheMealDB API meal object into this app's recipe shape. TheMealDB doesn't
+// provide calories, so we ballpark one using the same offline food-estimator used
+// elsewhere in the app, clearly labeled as an estimate.
+function parseMealDbRecipe(meal) {
+  const ingredients = [];
+  for (let i = 1; i <= 20; i++) {
+    const ing = meal[`strIngredient${i}`];
+    const measure = meal[`strMeasure${i}`];
+    if (ing && ing.trim()) {
+      ingredients.push(measure && measure.trim() ? `${measure.trim()} ${ing.trim()}` : ing.trim());
+    }
+  }
+  let steps = (meal.strInstructions || "")
+    .split(/\r?\n+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (steps.length <= 1) {
+    steps = (meal.strInstructions || "")
+      .split(/(?<=\.)\s+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  const calEstimate = estimateFoodLocally(meal.strMeal);
+  return {
+    name: meal.strMeal,
+    cal: `~${calEstimate.kcal} cal (estimated)`,
+    category: inferCategory(meal.strMeal),
+    ingredients,
+    steps: steps.length ? steps : ["Steps didn't parse cleanly — check the original recipe."],
+    photoUrl: meal.strMealThumb,
   };
 }
 
@@ -2435,6 +2507,7 @@ function BulkTiffin() {
   const [foodLogNotice, setFoodLogNotice] = useState("");
   const [planNotice, setPlanNotice] = useState("");
   const [nowNotice, setNowNotice] = useState("");
+  const [suggestNotice, setSuggestNotice] = useState("");
   const [searchError, setSearchError] = useState("");
   const [pantryItems, setPantryItems] = useState(PANTRY_DEFAULT.map((name) => ({ name, selected: false })));
   const [newPantryItem, setNewPantryItem] = useState("");
@@ -2449,6 +2522,8 @@ function BulkTiffin() {
   const [apiKey, setApiKey] = useState("");
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [lastBackupAt, setLastBackupAt] = useState(null);
+  const [desiredGainRate, setDesiredGainRate] = useState(0.35);
+  const [gainRateInput, setGainRateInput] = useState("");
   const [testKeyStatus, setTestKeyStatus] = useState(null);
   const [persistenceGranted, setPersistenceGranted] = useState(false);
   const [storageEstimate, setStorageEstimate] = useState(null);
@@ -2462,6 +2537,14 @@ function BulkTiffin() {
   const [proteinTargetInput, setProteinTargetInput] = useState("");
   const [recipeOpens, setRecipeOpens] = useState({});
   const [cookingRecipe, setCookingRecipe] = useState(null);
+  const [mealdbCategory, setMealdbCategory] = useState(null);
+  const [mealdbBrowseResults, setMealdbBrowseResults] = useState([]);
+  const [mealdbBrowseLoading, setMealdbBrowseLoading] = useState(false);
+  const [mealdbDetailLoading, setMealdbDetailLoading] = useState(false);
+  const [mealdbPreview, setMealdbPreview] = useState(null);
+  const [mealdbError, setMealdbError] = useState("");
+  const [showBrowseLibrary, setShowBrowseLibrary] = useState(false);
+  const [shoppingInput, setShoppingInput] = useState("");
   const [recipeFilter, setRecipeFilter] = useState("all");
   const [dateKey, setDateKey] = useState(todayKey());
   const didMountRef = useRef(false);
@@ -2578,6 +2661,10 @@ function BulkTiffin() {
       try {
         const lb = await window.storage.get("last-backup-at", false);
         if (lb) setLastBackupAt(JSON.parse(lb.value));
+      } catch (e) {}
+      try {
+        const gr = await window.storage.get("gain-rate", false);
+        if (gr) setDesiredGainRate(JSON.parse(gr.value));
       } catch (e) {}
       try {
         const granted = await window.storage.requestPersistence();
@@ -2774,6 +2861,95 @@ function BulkTiffin() {
       showToast("Couldn't save — try again");
     }
   };
+
+  const removeShoppingItem = async (idx) => {
+    const updated = shopping.filter((_, i) => i !== idx);
+    setShopping(updated);
+    try {
+      await window.storage.set("shopping", JSON.stringify(updated), false);
+    } catch (e) {
+      showToast("Couldn't save — try again");
+    }
+  };
+
+  const clearBoughtItems = async () => {
+    const updated = shopping.filter((s) => !s.checked);
+    const removedCount = shopping.length - updated.length;
+    setShopping(updated);
+    try {
+      await window.storage.set("shopping", JSON.stringify(updated), false);
+      showToast(`Cleared ${removedCount} bought item${removedCount === 1 ? "" : "s"}`);
+    } catch (e) {
+      showToast("Couldn't save — try again");
+    }
+  };
+
+  const addManualShoppingItem = async (text) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    const existingNames = new Set(shopping.map((s) => s.item.toLowerCase()));
+    if (existingNames.has(trimmed.toLowerCase())) {
+      showToast("Already on your list");
+      return;
+    }
+    const updated = [...shopping, { item: trimmed, checked: false }];
+    setShopping(updated);
+    try {
+      await window.storage.set("shopping", JSON.stringify(updated), false);
+      showToast("Added to list");
+    } catch (e) {
+      showToast("Couldn't save — try again");
+    }
+  };
+
+  const removeFromPantry = async (itemName) => {
+    const updated = pantryItems.filter((p) => p.name.toLowerCase() !== itemName.toLowerCase());
+    setPantryItems(updated);
+    try {
+      await window.storage.set("pantry-items", JSON.stringify(updated), false);
+      showToast(`Moved "${itemName}" to need-to-buy`);
+    } catch (e) {}
+  };
+
+  const shareShoppingList = async (items) => {
+    if (!items.length) {
+      showToast("Nothing to share");
+      return;
+    }
+    const text = `Shopping list — Today's Dabba\n\n${items.map((s) => `• ${s.item}`).join("\n")}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ text });
+      } catch (e) {
+        // user cancelled the share sheet — not an error
+      }
+    } else if (navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast("Copied to clipboard");
+      } catch (e) {
+        showToast("Couldn't copy — try again");
+      }
+    }
+  };
+
+  // Rough grocery-aisle grouping so the "need to buy" list reads like a real shopping list.
+  const AISLE_KEYWORDS = {
+    Produce: ["onion", "tomato", "potato", "garlic", "ginger", "spinach", "cauliflower", "okra", "banana", "lemon", "carrot", "pepper", "chilli", "chili", "coriander", "mint", "cabbage", "vegetable", "fruit"],
+    "Dairy & Eggs": ["milk", "cheese", "dahi", "yogurt", "curd", "butter", "ghee", "paneer", "cream", "egg"],
+    "Meat & Seafood": ["chicken", "fish", "mutton", "lamb", "keema", "prawn", "meat"],
+    Bakery: ["bread", "bun", "parantha", "paratha", "tortilla"],
+    "Pantry & Grains": ["rice", "dal", "atta", "flour", "besan", "noodles", "pasta", "oats", "cereal", "sugar", "salt", "oil", "spice", "masala", "jaggery", "peanut butter", "honey"],
+    Frozen: ["frozen"],
+  };
+  function getAisle(itemName) {
+    const n = itemName.toLowerCase();
+    for (const [aisle, keywords] of Object.entries(AISLE_KEYWORDS)) {
+      if (keywords.some((k) => n.includes(k))) return aisle;
+    }
+    return "Other";
+  }
+  const AISLE_ORDER = ["Produce", "Dairy & Eggs", "Meat & Seafood", "Bakery", "Pantry & Grains", "Frozen", "Other"];
 
   const addRecipeIngredientsToShopping = async (recipe) => {
     const existingNames = new Set(shopping.map((s) => s.item.toLowerCase()));
@@ -3074,6 +3250,38 @@ function BulkTiffin() {
     setTimeout(() => searchRecipe(), 50);
   };
 
+  const browseMealDbCategory = async (cat) => {
+    setMealdbCategory(cat);
+    setMealdbBrowseLoading(true);
+    setMealdbError("");
+    setMealdbBrowseResults([]);
+    setMealdbPreview(null);
+    try {
+      const r = await fetch(`https://www.themealdb.com/api/json/v1/1/filter.php?c=${encodeURIComponent(cat)}`);
+      const d = await r.json();
+      setMealdbBrowseResults(d.meals || []);
+    } catch (e) {
+      setMealdbError("Couldn't load that category — check your connection and try again.");
+    }
+    setMealdbBrowseLoading(false);
+  };
+
+  const importMealDbRecipe = async (id) => {
+    setMealdbDetailLoading(true);
+    setMealdbError("");
+    setMealdbPreview(null);
+    try {
+      const r = await fetch(`https://www.themealdb.com/api/json/v1/1/lookup.php?i=${id}`);
+      const d = await r.json();
+      const meal = d.meals && d.meals[0];
+      if (!meal) throw new Error("not found");
+      setMealdbPreview(parseMealDbRecipe(meal));
+    } catch (e) {
+      setMealdbError("Couldn't load that recipe — try again.");
+    }
+    setMealdbDetailLoading(false);
+  };
+
   const searchRecipe = async () => {
     if (!searchQuery.trim()) return;
     setSearchError("");
@@ -3135,22 +3343,32 @@ function BulkTiffin() {
       showToast("Select a few ingredients first");
       return;
     }
-    setSuggestLoading(true);
     setSuggestError("");
+    setSuggestNotice("");
     setSuggestions([]);
-    try {
-      const prompt = `Suggest exactly 2 beginner-friendly, calorie-dense recipes (for someone underweight trying to gain weight) built primarily around these ingredients: ${selected.join(
-        ", "
-      )}. You may assume basic staples (salt, oil, water, spices) are also available. Respond with ONLY valid JSON, no markdown fences, no preamble, in exactly this shape: [{"name": "string", "cal": "approx calorie string", "category": "one of: curry, noodles, sandwich, egg, drink, sweet, other", "ingredients": ["string", "..."], "steps": ["short beginner step", "..."]}] with 4-6 steps each. Keep the whole response concise.`;
-      const recipes = await callClaude(prompt);
-      const list = Array.isArray(recipes) ? recipes : [recipes];
-      const normalized = list.map(normalizeRecipe).filter(Boolean);
-      if (!normalized.length) throw new Error("bad shape");
-      setSuggestions(normalized);
-    } catch (e) {
-      setSuggestError("Couldn't get suggestions — try different ingredients or try again.");
+
+    if (apiKey) {
+      setSuggestLoading(true);
+      try {
+        const prompt = `Suggest exactly 2 beginner-friendly, calorie-dense recipes (for someone underweight trying to gain weight) built primarily around these ingredients: ${selected.join(
+          ", "
+        )}. You may assume basic staples (salt, oil, water, spices) are also available. Respond with ONLY valid JSON, no markdown fences, no preamble, in exactly this shape: [{"name": "string", "cal": "approx calorie string", "category": "one of: curry, noodles, sandwich, egg, drink, sweet, other", "ingredients": ["string", "..."], "steps": ["short beginner step", "..."]}] with 4-6 steps each. Keep the whole response concise.`;
+        const recipes = await callClaude(prompt);
+        const list = Array.isArray(recipes) ? recipes : [recipes];
+        const normalized = list.map(normalizeRecipe).filter(Boolean);
+        if (normalized.length) {
+          setSuggestions(normalized);
+          setSuggestLoading(false);
+          return;
+        }
+      } catch (e) {
+        setSuggestNotice((e && e.message ? e.message : "Live suggestion failed") + " — showing matches from your recipe library instead.");
+      }
+      setSuggestLoading(false);
     }
-    setSuggestLoading(false);
+
+    const offlineMatches = suggestFromPantryOffline(selected);
+    setSuggestions(offlineMatches);
   };
 
   const saveRecipe = async (recipe) => {
@@ -3396,36 +3614,40 @@ function BulkTiffin() {
 
     let suggestion = "";
     const rate = weeklyRate !== null ? parseFloat(weeklyRate) : null;
+    const hasAdaptiveData = weights.length >= 10;
     if (avgKcal < calorieTarget - 300) {
       suggestion = `You're averaging ${calorieTarget - avgKcal} kcal under target — try logging one more snack or shake most days.`;
     } else if (rate !== null && rate < 0.15 && avgKcal >= calorieTarget - 150) {
-      suggestion = `Trend is flat even though intake looks on track — consider raising your daily target by ~150-250 kcal.`;
+      suggestion = hasAdaptiveData
+        ? "Trend is flat even though intake looks on track — check the Adaptive target below for a precise number."
+        : "Trend is flat even though intake looks on track — consider raising your daily target by ~150-250 kcal.";
     } else if (avgProtein < proteinTarget - 20) {
       suggestion = `Protein's been running low (~${avgProtein}g avg) — an extra egg or palm-sized portion at dinner would help.`;
     } else if (rate !== null && rate >= 0.3) {
-      suggestion = `Gaining faster than the ~0.4kg/week target — that's fine short-term, just keep an eye on the trend.`;
+      suggestion = hasAdaptiveData
+        ? "Gaining faster than your target rate — see the Adaptive target below if you want to dial it in."
+        : "Gaining faster than the ~0.4kg/week target — that's fine short-term, just keep an eye on the trend.";
     } else {
       suggestion = "Solid week — current targets look about right, keep the streak going.";
     }
     return { avgKcal, avgProtein, adherence, daysLogged: days.length, suggestion };
-  }, [history, weeklyRate, calorieTarget, proteinTarget]);
+  }, [history, weeklyRate, calorieTarget, proteinTarget, weights]);
 
   // Adaptive TDEE estimate: infers actual maintenance calories from the observed
   // relationship between logged intake and the smoothed weight trend, then suggests
-  // a target for a safe ~0.35 kg/week lean gain rate. Needs real data to be trustworthy —
+  // a target for the person's chosen gain rate. Needs real data to be trustworthy —
   // per MacroFactor's own documentation, adaptive estimates need several weeks of
   // consistent logging before they're reliable, so this stays "provisional" until then.
   const KCAL_PER_KG = 7700;
-  const DESIRED_WEEKLY_GAIN_KG = 0.35;
   const adaptiveEngine = useMemo(() => {
     if (!weeklyDigest || weeklyRate === null || weights.length < 10) return null;
     const rate = parseFloat(weeklyRate);
     const estimatedTDEE = Math.round(weeklyDigest.avgKcal - (rate * KCAL_PER_KG) / 7);
-    const suggestedTarget = Math.round(estimatedTDEE + (DESIRED_WEEKLY_GAIN_KG * KCAL_PER_KG) / 7);
+    const suggestedTarget = Math.round(estimatedTDEE + (desiredGainRate * KCAL_PER_KG) / 7);
     const confident = weights.length >= 14;
     const diff = suggestedTarget - calorieTarget;
     return { estimatedTDEE, suggestedTarget, confident, rate, diff };
-  }, [weeklyDigest, weeklyRate, weights, calorieTarget]);
+  }, [weeklyDigest, weeklyRate, weights, calorieTarget, desiredGainRate]);
 
   const applyAdaptiveTarget = async () => {
     if (!adaptiveEngine) return;
@@ -3437,6 +3659,13 @@ function BulkTiffin() {
     } catch (e) {
       showToast("Couldn't save — try again");
     }
+  };
+
+  const saveGainRate = async (rate) => {
+    setDesiredGainRate(rate);
+    try {
+      await window.storage.set("gain-rate", JSON.stringify(rate), false);
+    } catch (e) {}
   };
 
   const needToBuyCount = useMemo(() => {
@@ -4491,13 +4720,34 @@ function BulkTiffin() {
                 </div>
                 <div style={{ fontSize: "0.8rem", color: "#C9BBA3", lineHeight: 1.6 }}>
                   Based on your actual intake vs. weight trend, your real maintenance looks like{" "}
-                  <strong style={{ color: "#F2E9DC" }}>~{adaptiveEngine.estimatedTDEE} kcal/day</strong>. To gain at a steady ~{DESIRED_WEEKLY_GAIN_KG} kg/week, your target would be{" "}
+                  <strong style={{ color: "#F2E9DC" }}>~{adaptiveEngine.estimatedTDEE} kcal/day</strong>. To gain at a steady ~{desiredGainRate} kg/week, your target would be{" "}
                   <strong style={{ color: "#E3A008" }}>{adaptiveEngine.suggestedTarget} kcal</strong>
                   {Math.abs(adaptiveEngine.diff) < 100 ? " — that's basically where you already are." : `, ${adaptiveEngine.diff > 0 ? "about " + adaptiveEngine.diff + " more" : "about " + Math.abs(adaptiveEngine.diff) + " less"} than your current ${calorieTarget}.`}
                 </div>
                 {!adaptiveEngine.confident && (
                   <div style={{ fontSize: "0.7rem", color: "#8A7A63", marginTop: "0.5rem" }}>Based on {weights.length} weigh-ins so far — gets more reliable past 2 weeks of consistent logging.</div>
                 )}
+                <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginTop: "0.7rem" }}>
+                  <span style={{ fontSize: "0.68rem", color: "#8A7A63" }}>Target rate:</span>
+                  {[0.25, 0.35, 0.5].map((rate) => (
+                    <button
+                      key={rate}
+                      onClick={() => saveGainRate(rate)}
+                      style={{
+                        background: desiredGainRate === rate ? "#4A7C59" : "#252019",
+                        border: `1px solid ${desiredGainRate === rate ? "#4A7C59" : "#34291C"}`,
+                        borderRadius: "999px",
+                        padding: "0.25rem 0.6rem",
+                        color: desiredGainRate === rate ? "#F2E9DC" : "#8A7A63",
+                        fontSize: "0.68rem",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {rate} kg/wk
+                    </button>
+                  ))}
+                </div>
                 {Math.abs(adaptiveEngine.diff) >= 100 && (
                   <button
                     onClick={applyAdaptiveTarget}
@@ -4681,6 +4931,86 @@ function BulkTiffin() {
               <div style={{ fontSize: "0.68rem", color: "#5C6E58", marginTop: "0.5rem" }}>Add an API key in ⚙️ Settings for live, unlimited recipe search instead of your built-in library.</div>
             )}
 
+            {/* Browse a bigger recipe library — real recipes with photos, pulled live from TheMealDB */}
+            <div style={{ marginTop: "1.75rem" }}>
+              <button
+                onClick={() => setShowBrowseLibrary(!showBrowseLibrary)}
+                style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#252019", border: "1px solid #34291C", borderRadius: "14px", padding: "0.8rem 1rem", color: "#F2E9DC", cursor: "pointer", marginBottom: showBrowseLibrary ? "0.6rem" : 0 }}
+              >
+                <span style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", fontWeight: 600 }}>
+                  <Utensils size={16} color="#C97C2C" /> Browse a bigger recipe library
+                </span>
+                <ChevronDown size={16} color="#8A7A63" style={{ transform: showBrowseLibrary ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+              </button>
+              {showBrowseLibrary && (
+                <div className="fade-in">
+                  <div style={{ fontSize: "0.7rem", color: "#8A7A63", marginBottom: "0.6rem" }}>Hundreds of real recipes with photos — pick a category:</div>
+                  <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginBottom: "0.9rem" }}>
+                    {MEALDB_CATEGORIES.map((cat) => (
+                      <button
+                        key={cat}
+                        onClick={() => browseMealDbCategory(cat)}
+                        style={{
+                          background: mealdbCategory === cat ? "#C97C2C" : "#252019",
+                          border: `1px solid ${mealdbCategory === cat ? "#C97C2C" : "#34291C"}`,
+                          borderRadius: "999px",
+                          padding: "0.4rem 0.75rem",
+                          color: mealdbCategory === cat ? "#1C1815" : "#C9BBA3",
+                          fontSize: "0.76rem",
+                          fontWeight: 600,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+
+                  {mealdbBrowseLoading && (
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "#8A7A63", fontSize: "0.82rem", marginBottom: "0.75rem" }}>
+                      <Loader2 size={15} className="spin" /> Loading {mealdbCategory}…
+                    </div>
+                  )}
+                  {mealdbError && <div style={{ fontSize: "0.78rem", color: "#C25450", marginBottom: "0.75rem" }}>{mealdbError}</div>}
+
+                  {mealdbBrowseResults.length > 0 && !mealdbPreview && (
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.5rem", marginBottom: "0.75rem" }}>
+                      {mealdbBrowseResults.map((m) => (
+                        <button
+                          key={m.idMeal}
+                          onClick={() => importMealDbRecipe(m.idMeal)}
+                          style={{ background: "#252019", border: "1px solid #34291C", borderRadius: "12px", padding: "0.4rem", cursor: "pointer", textAlign: "center" }}
+                        >
+                          <div style={{ width: "100%", aspectRatio: "1", borderRadius: "8px", overflow: "hidden", marginBottom: "0.35rem" }}>
+                            <img src={m.strMealThumb} alt={m.strMeal} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                          </div>
+                          <div style={{ fontSize: "0.68rem", color: "#F2E9DC", lineHeight: 1.3 }}>{m.strMeal}</div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {mealdbDetailLoading && (
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "#8A7A63", fontSize: "0.82rem", marginBottom: "0.75rem" }}>
+                      <Loader2 size={15} className="spin" /> Loading recipe…
+                    </div>
+                  )}
+                  {mealdbPreview && (
+                    <div className="fade-in">
+                      <button
+                        onClick={() => setMealdbPreview(null)}
+                        style={{ display: "flex", alignItems: "center", gap: "0.3rem", background: "transparent", border: "none", color: "#8A7A63", fontSize: "0.76rem", cursor: "pointer", marginBottom: "0.5rem", padding: 0 }}
+                      >
+                        <ChevronLeft size={14} /> Back to {mealdbCategory}
+                      </button>
+                      <div style={{ fontSize: "0.68rem", color: "#5C6E58", marginBottom: "0.5rem" }}>Calories aren't provided by this source, so they're a rough estimate.</div>
+                      <DynamicRecipeCard recipe={mealdbPreview} onAddToShopping={addRecipeIngredientsToShopping} onSave={saveRecipe} onStartCooking={setCookingRecipe} onRemix={openRemix} />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Filter by what you have */}
             <div style={{ marginTop: "1.75rem" }}>
               <button
@@ -4737,6 +5067,10 @@ function BulkTiffin() {
                     {suggestLoading ? "Thinking…" : "Suggest recipes"}
                   </button>
                   {suggestError && <div style={{ fontSize: "0.78rem", color: "#C25450", marginTop: "0.6rem" }}>{suggestError}</div>}
+                  {suggestNotice && <div style={{ fontSize: "0.72rem", color: "#8A7A63", marginTop: "0.6rem" }}>{suggestNotice}</div>}
+                  {!apiKey && (
+                    <div style={{ fontSize: "0.68rem", color: "#5C6E58", marginTop: "0.6rem" }}>Add an API key in ⚙️ Settings for live, tailored suggestions instead of your recipe library.</div>
+                  )}
                 </div>
               )}
             </div>
@@ -4859,39 +5193,89 @@ function BulkTiffin() {
         {tab === "shop" && (
           <div style={{ padding: "1.5rem 1.25rem 0" }}>
             <PageBanner illustration={<BasketIllustration />} title="Shop" subtitle="Only the real gaps, nothing you already have" />
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
-              <ShoppingBasket size={18} color="#E3A008" />
-              <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: "1.15rem", fontWeight: 600, margin: 0 }}>Shopping list</h2>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.75rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <ShoppingBasket size={18} color="#E3A008" />
+                <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: "1.15rem", fontWeight: 600, margin: 0 }}>Shopping list</h2>
+              </div>
+              <button
+                onClick={() => shareShoppingList(shopping.filter((s) => !s.checked))}
+                style={{ display: "flex", alignItems: "center", gap: "0.3rem", background: "#252019", border: "1px solid #34291C", borderRadius: "999px", padding: "0.35rem 0.7rem", color: "#8A7A63", fontSize: "0.72rem", fontWeight: 600, cursor: "pointer" }}
+              >
+                <Share2 size={12} /> Share
+              </button>
             </div>
+
+            {/* Manual add */}
+            <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.1rem" }}>
+              <input
+                type="text"
+                value={shoppingInput}
+                onChange={(e) => setShoppingInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    addManualShoppingItem(shoppingInput);
+                    setShoppingInput("");
+                  }
+                }}
+                placeholder="Add an item (e.g. 2 dozen eggs)"
+                style={{ flex: 1, background: "#252019", border: "1px solid #34291C", borderRadius: "10px", padding: "0.65rem 0.9rem", color: "#F2E9DC", fontSize: "0.85rem", outline: "none" }}
+              />
+              <button
+                onClick={() => {
+                  addManualShoppingItem(shoppingInput);
+                  setShoppingInput("");
+                }}
+                style={{ background: "#4A7C59", border: "none", borderRadius: "10px", padding: "0.65rem 1rem", color: "#F2E9DC", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center" }}
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+
             {(() => {
               const haveSet = new Set(pantryItems.map((p) => p.name.toLowerCase()));
               const needToBuy = shopping.filter((s, i) => !s.checked && !haveSet.has(s.item.toLowerCase())).map((s) => ({ ...s, idx: shopping.indexOf(s) }));
               const alreadyHave = shopping.filter((s) => haveSet.has(s.item.toLowerCase()) && !s.checked).map((s) => ({ ...s, idx: shopping.indexOf(s) }));
               const bought = shopping.filter((s) => s.checked).map((s) => ({ ...s, idx: shopping.indexOf(s) }));
 
-              const renderRow = (s, showStrike) => (
-                <button
-                  key={s.item + s.idx}
-                  onClick={() => toggleShopping(s.idx)}
-                  style={{ width: "100%", display: "flex", alignItems: "center", gap: "0.75rem", background: "transparent", border: "none", padding: "0.7rem 0.6rem", cursor: "pointer", textAlign: "left" }}
-                >
-                  <div
-                    style={{
-                      width: "22px",
-                      height: "22px",
-                      borderRadius: "6px",
-                      border: s.checked ? "none" : "2px solid #4A3E2C",
-                      background: s.checked ? "#4A7C59" : "transparent",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                    }}
+              // Group "need to buy" by rough grocery aisle so it's actually useful in a store.
+              const grouped = {};
+              needToBuy.forEach((s) => {
+                const aisle = getAisle(s.item);
+                if (!grouped[aisle]) grouped[aisle] = [];
+                grouped[aisle].push(s);
+              });
+
+              const renderRow = (s, { showStrike = false, onDelete = null, extraAction = null } = {}) => (
+                <div key={s.item + s.idx} style={{ width: "100%", display: "flex", alignItems: "center", gap: "0.6rem", padding: "0.65rem 0.6rem" }}>
+                  <button
+                    onClick={() => toggleShopping(s.idx)}
+                    style={{ display: "flex", alignItems: "center", gap: "0.75rem", background: "transparent", border: "none", padding: 0, cursor: "pointer", textAlign: "left", flex: 1 }}
                   >
-                    {s.checked && <Check size={14} color="#F2E9DC" strokeWidth={3} className="check-pop" />}
-                  </div>
-                  <span style={{ fontSize: "0.9rem", color: s.checked ? "#5C6E58" : "#F2E9DC", textDecoration: showStrike && s.checked ? "line-through" : "none" }}>{s.item}</span>
-                </button>
+                    <div
+                      style={{
+                        width: "22px",
+                        height: "22px",
+                        borderRadius: "6px",
+                        border: s.checked ? "none" : "2px solid #4A3E2C",
+                        background: s.checked ? "#4A7C59" : "transparent",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {s.checked && <Check size={14} color="#F2E9DC" strokeWidth={3} className="check-pop" />}
+                    </div>
+                    <span style={{ fontSize: "0.9rem", color: s.checked ? "#5C6E58" : "#F2E9DC", textDecoration: showStrike && s.checked ? "line-through" : "none" }}>{s.item}</span>
+                  </button>
+                  {extraAction}
+                  {onDelete && (
+                    <button onClick={onDelete} title="Remove from list" style={{ background: "transparent", border: "none", cursor: "pointer", padding: "0.2rem", flexShrink: 0 }}>
+                      <X size={14} color="#8A7A63" />
+                    </button>
+                  )}
+                </div>
               );
 
               return (
@@ -4900,11 +5284,18 @@ function BulkTiffin() {
                     <div style={{ fontSize: "0.72rem", color: "#8A7A63", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 0.4rem 0.2rem" }}>
                       Need to buy · {needToBuy.length}
                     </div>
-                    <div style={{ background: "#252019", borderRadius: "14px", border: "1px solid #34291C", padding: "0.4rem" }}>
-                      {needToBuy.length ? needToBuy.map((s) => renderRow(s, true)) : (
-                        <div style={{ padding: "0.9rem 0.6rem", fontSize: "0.82rem", color: "#8A7A63" }}>Nothing left to buy 🎉</div>
-                      )}
-                    </div>
+                    {needToBuy.length ? (
+                      AISLE_ORDER.filter((aisle) => grouped[aisle] && grouped[aisle].length).map((aisle) => (
+                        <div key={aisle} style={{ marginBottom: "0.6rem" }}>
+                          <div style={{ fontSize: "0.68rem", color: "#5C6E58", fontWeight: 600, margin: "0 0 0.25rem 0.3rem" }}>{aisle}</div>
+                          <div style={{ background: "#252019", borderRadius: "14px", border: "1px solid #34291C", padding: "0.2rem" }}>
+                            {grouped[aisle].map((s) => renderRow(s, { showStrike: true, onDelete: () => removeShoppingItem(s.idx) }))}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div style={{ background: "#252019", borderRadius: "14px", border: "1px solid #34291C", padding: "0.9rem 0.6rem", fontSize: "0.82rem", color: "#8A7A63" }}>Nothing left to buy 🎉</div>
+                    )}
                   </div>
 
                   {alreadyHave.length > 0 && (
@@ -4912,16 +5303,37 @@ function BulkTiffin() {
                       <div style={{ fontSize: "0.72rem", color: "#8A7A63", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0.9rem 0 0.4rem 0.2rem" }}>
                         Already in your pantry · {alreadyHave.length}
                       </div>
-                      <div style={{ background: "#1F1A14", borderRadius: "14px", border: "1px solid #34291C", padding: "0.4rem", opacity: 0.75 }}>{alreadyHave.map((s) => renderRow(s, false))}</div>
+                      <div style={{ background: "#1F1A14", borderRadius: "14px", border: "1px solid #34291C", padding: "0.2rem", opacity: 0.85 }}>
+                        {alreadyHave.map((s) =>
+                          renderRow(s, {
+                            showStrike: false,
+                            onDelete: () => removeShoppingItem(s.idx),
+                            extraAction: (
+                              <button
+                                onClick={() => removeFromPantry(s.item)}
+                                title="Actually, I need to buy this"
+                                style={{ background: "transparent", border: "none", cursor: "pointer", padding: "0.2rem", flexShrink: 0 }}
+                              >
+                                <RotateCcw size={13} color="#8A7A63" />
+                              </button>
+                            ),
+                          })
+                        )}
+                      </div>
                     </div>
                   )}
 
                   {bought.length > 0 && (
                     <div>
-                      <div style={{ fontSize: "0.72rem", color: "#8A7A63", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0.9rem 0 0.4rem 0.2rem" }}>
-                        Bought · {bought.length}
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "0.9rem 0 0.4rem 0.2rem" }}>
+                        <div style={{ fontSize: "0.72rem", color: "#8A7A63", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Bought · {bought.length}</div>
+                        <button onClick={clearBoughtItems} style={{ background: "transparent", border: "none", color: "#C97C2C", fontSize: "0.72rem", fontWeight: 600, cursor: "pointer" }}>
+                          Clear
+                        </button>
                       </div>
-                      <div style={{ background: "#1F1A14", borderRadius: "14px", border: "1px solid #34291C", padding: "0.4rem" }}>{bought.map((s) => renderRow(s, true))}</div>
+                      <div style={{ background: "#1F1A14", borderRadius: "14px", border: "1px solid #34291C", padding: "0.2rem" }}>
+                        {bought.map((s) => renderRow(s, { showStrike: true, onDelete: () => removeShoppingItem(s.idx) }))}
+                      </div>
                     </div>
                   )}
                 </>
