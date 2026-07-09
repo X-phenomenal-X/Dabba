@@ -2173,7 +2173,7 @@ function CookingMode({ recipe, onClose, onAddToShopping, onMarkMeal }) {
       `}</style>
 
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "1.1rem 1.25rem", borderBottom: "1px solid #34291C" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "1.1rem 1.25rem", borderBottom: "1px solid #34291C", paddingTop: "calc(1.1rem + env(safe-area-inset-top))" }}>
         <button onClick={onClose} style={{ background: "#252019", border: "1px solid #34291C", borderRadius: "999px", width: "34px", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
           <X size={16} color="#F2E9DC" />
         </button>
@@ -3952,7 +3952,7 @@ function BulkTiffin() {
       )}
 
       {/* Sticky header */}
-      <div style={{ position: "sticky", top: 0, zIndex: 20, background: "rgba(28,24,21,0.92)", backdropFilter: "blur(6px)", borderBottom: "1px solid #34291C" }}>
+      <div style={{ position: "sticky", top: 0, zIndex: 20, background: "rgba(28,24,21,0.92)", backdropFilter: "blur(6px)", borderBottom: "1px solid #34291C", paddingTop: "calc(env(safe-area-inset-top) + 6px)" }}>
         <div style={{ padding: "1.1rem 1.25rem", maxWidth: "480px", margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div style={{ fontSize: "0.66rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#C97C2C", fontWeight: 600 }}>
