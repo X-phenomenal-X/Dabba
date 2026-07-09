@@ -3289,7 +3289,21 @@ function BulkTiffin() {
     setSearchResult(null);
     setSearchQuality(null);
     const query = searchQuery.trim();
+    const queryLower = query.toLowerCase();
 
+    // Tier 1: check recipes you've already saved — instant, no network, respects
+    // anything you've customized (e.g. a remix) under that name.
+    const savedMatch =
+      savedRecipes.find((r) => r.name.toLowerCase() === queryLower) ||
+      savedRecipes.find((r) => r.name.toLowerCase().includes(queryLower) || queryLower.includes(r.name.toLowerCase()));
+    if (savedMatch) {
+      setSearchResult(savedMatch);
+      setSearchQuality("saved");
+      return;
+    }
+
+    // Tier 2: live AI generation (if a key is set) — most flexible, tailored to the
+    // exact request including any modifications mentioned.
     if (apiKey) {
       setSearchLoading(true);
       try {
@@ -3303,19 +3317,37 @@ function BulkTiffin() {
           return;
         }
       } catch (e) {
-        setSearchNotice((e && e.message ? e.message : "Live search failed") + " — showing your recipe library instead.");
+        setSearchNotice((e && e.message ? e.message : "Live search failed") + " — checking a wider recipe database instead.");
       }
       setSearchLoading(false);
     }
 
-    // Fallback: instant match from the built-in recipe library (used when there's no
-    // API key, or the live call above failed).
+    // Tier 3: TheMealDB's live recipe search — hundreds of real recipes with full
+    // instructions, and critically, this needs no Anthropic key at all, so it's the
+    // main safety net when there's no key or the AI call failed.
+    setSearchLoading(true);
+    try {
+      const r = await fetch(`https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(query)}`);
+      const d = await r.json();
+      if (d && d.meals && d.meals[0]) {
+        setSearchResult(parseMealDbRecipe(d.meals[0]));
+        setSearchQuality("mealdb");
+        setSearchLoading(false);
+        return;
+      }
+    } catch (e) {
+      // No connection or the API is down — fall through to the guaranteed offline match.
+    }
+    setSearchLoading(false);
+
+    // Tier 4: guaranteed instant match from the built-in 68-recipe library — works
+    // fully offline, always returns something.
     const offlineMatch = searchRecipeOffline(query);
     if (offlineMatch) {
       setSearchResult(offlineMatch.recipe);
       setSearchQuality(offlineMatch.quality);
     } else {
-      setSearchError("No close match in your recipe library yet — try browsing Starter recipes below, or a different search term.");
+      setSearchError("No match found anywhere — try a different search term, or browse the library below.");
     }
   };
 
@@ -4916,10 +4948,10 @@ function BulkTiffin() {
             {searchNotice && <div style={{ fontSize: "0.72rem", color: "#8A7A63", marginBottom: "0.5rem" }}>{searchNotice}</div>}
             {searchResult && (
               <>
-                {searchQuality === "live" && (
-                  <div style={{ fontSize: "0.72rem", color: "#4A7C59", marginBottom: "0.5rem" }}>✓ Live result</div>
-                )}
-                {searchQuality && searchQuality !== "exact" && searchQuality !== "live" && (
+                {searchQuality === "live" && <div style={{ fontSize: "0.72rem", color: "#4A7C59", marginBottom: "0.5rem" }}>✓ Live result</div>}
+                {searchQuality === "saved" && <div style={{ fontSize: "0.72rem", color: "#4A7C59", marginBottom: "0.5rem" }}>📌 From your saved recipes</div>}
+                {searchQuality === "mealdb" && <div style={{ fontSize: "0.72rem", color: "#4A7C59", marginBottom: "0.5rem" }}>✓ Found in the recipe database</div>}
+                {searchQuality && !["exact", "live", "saved", "mealdb"].includes(searchQuality) && (
                   <div style={{ fontSize: "0.74rem", color: "#8A7A63", marginBottom: "0.5rem" }}>
                     {searchQuality === "keyword" ? "Closest match from your recipe library:" : "No exact match — closest thing from your library:"}
                   </div>
@@ -4928,7 +4960,7 @@ function BulkTiffin() {
               </>
             )}
             {!apiKey && (
-              <div style={{ fontSize: "0.68rem", color: "#5C6E58", marginTop: "0.5rem" }}>Add an API key in ⚙️ Settings for live, unlimited recipe search instead of your built-in library.</div>
+              <div style={{ fontSize: "0.68rem", color: "#5C6E58", marginTop: "0.5rem" }}>Add an API key in ⚙️ Settings for AI-tailored results too, on top of the recipe database search.</div>
             )}
 
             {/* Browse a bigger recipe library — real recipes with photos, pulled live from TheMealDB */}
