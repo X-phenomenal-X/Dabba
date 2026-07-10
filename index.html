@@ -1849,37 +1849,114 @@ const FOOD_DB = [
   { keywords: ["cold brew"], name: "Cold Brew (black)", kcal: 15, protein: 0 },
   { keywords: ["frappuccino", "frappe"], name: "Frappuccino (medium)", kcal: 370, protein: 4 },
   { keywords: ["hot chocolate"], name: "Hot Chocolate (medium)", kcal: 300, protein: 8 },
-  { keywords: ["chai latte", "chai tea"], name: "Chai Latte (medium)", kcal: 240, protein: 8 },
+  { keywords: ["chai latte", "chai tea", "masala chai", "chai"], name: "Chai (medium)", kcal: 120, protein: 3 },
   { keywords: ["milkshake", "shake"], name: "Milkshake (medium)", kcal: 550, protein: 10 },
   { keywords: ["smoothie"], name: "Fruit Smoothie (medium)", kcal: 280, protein: 4 },
+  { keywords: ["protein shake"], name: "Protein Shake (1 scoop + milk)", kcal: 250, protein: 30 },
+  { keywords: ["lassi"], name: "Sweet Lassi (1 glass)", kcal: 220, protein: 6 },
+  { keywords: ["coconut water"], name: "Coconut Water (1 glass)", kcal: 45, protein: 1 },
+  { keywords: ["orange juice"], name: "Orange Juice (1 glass)", kcal: 110, protein: 2 },
+  { keywords: ["soda", "cola", "coke", "pepsi"], name: "Soda (can)", kcal: 150, protein: 0 },
+  { keywords: ["beer"], name: "Beer (1 can/bottle)", kcal: 150, protein: 2 },
   { keywords: ["big mac"], name: "McDonald's Big Mac", kcal: 550, protein: 25 },
   { keywords: ["quarter pounder"], name: "McDonald's Quarter Pounder with Cheese", kcal: 520, protein: 30 },
   { keywords: ["mcchicken"], name: "McDonald's McChicken", kcal: 400, protein: 14 },
   { keywords: ["whopper"], name: "Burger King Whopper", kcal: 660, protein: 28 },
   { keywords: ["cheeseburger"], name: "Cheeseburger (fast food)", kcal: 300, protein: 15 },
   { keywords: ["hamburger", "burger"], name: "Hamburger (fast food)", kcal: 250, protein: 12 },
+  { keywords: ["hot dog"], name: "Hot Dog (1, with bun)", kcal: 300, protein: 11 },
   { keywords: ["medium fries", "french fries", "fries"], name: "French Fries (medium)", kcal: 340, protein: 4 },
   { keywords: ["onion rings"], name: "Onion Rings (regular)", kcal: 410, protein: 5 },
   { keywords: ["chicken nuggets", "nuggets"], name: "Chicken Nuggets (6 pc)", kcal: 280, protein: 14 },
+  { keywords: ["chicken wings", "wings"], name: "Chicken Wings (6 pc)", kcal: 480, protein: 30 },
+  { keywords: ["nachos"], name: "Nachos (regular, with cheese)", kcal: 550, protein: 12 },
   { keywords: ["subway", "footlong", "6 inch sub"], name: "Subway 6-inch Sandwich", kcal: 350, protein: 18 },
   { keywords: ["blt"], name: "BLT Sandwich", kcal: 400, protein: 15 },
   { keywords: ["grilled cheese"], name: "Grilled Cheese Sandwich", kcal: 400, protein: 15 },
+  { keywords: ["pb&j", "peanut butter jelly", "peanut butter sandwich"], name: "PB&J Sandwich", kcal: 350, protein: 12 },
   { keywords: ["pizza slice", "slice of pizza"], name: "Pizza Slice (regular cheese)", kcal: 285, protein: 12 },
   { keywords: ["personal pizza", "medium pizza"], name: "Medium Pizza (whole)", kcal: 1800, protein: 70 },
   { keywords: ["donut", "doughnut"], name: "Donut (glazed)", kcal: 260, protein: 3 },
   { keywords: ["muffin"], name: "Muffin (bakery style)", kcal: 420, protein: 6 },
   { keywords: ["bagel"], name: "Bagel (plain)", kcal: 270, protein: 10 },
   { keywords: ["croissant"], name: "Croissant", kcal: 270, protein: 5 },
+  { keywords: ["pancakes"], name: "Pancakes (3, with syrup)", kcal: 520, protein: 10 },
+  { keywords: ["waffle"], name: "Waffle (with syrup)", kcal: 450, protein: 8 },
+  { keywords: ["oatmeal", "porridge"], name: "Oatmeal (1 bowl)", kcal: 250, protein: 8 },
+  { keywords: ["cereal"], name: "Cereal with Milk (1 bowl)", kcal: 250, protein: 8 },
   { keywords: ["salad"], name: "Salad (with dressing)", kcal: 350, protein: 10 },
+  { keywords: ["soup"], name: "Soup (1 bowl)", kcal: 200, protein: 8 },
   { keywords: ["taco"], name: "Taco", kcal: 220, protein: 9 },
   { keywords: ["burrito"], name: "Burrito", kcal: 550, protein: 20 },
   { keywords: ["fried chicken"], name: "Fried Chicken (2 pieces)", kcal: 500, protein: 35 },
+  { keywords: ["mac and cheese", "mac n cheese"], name: "Mac and Cheese (1 bowl)", kcal: 450, protein: 15 },
+  { keywords: ["ramen"], name: "Ramen Bowl", kcal: 500, protein: 18 },
+  { keywords: ["sushi roll", "sushi"], name: "Sushi Roll (8 pc)", kcal: 300, protein: 10 },
+  { keywords: ["pasta"], name: "Pasta (1 plate)", kcal: 500, protein: 15 },
   { keywords: ["ice cream"], name: "Ice Cream (1 scoop/cone)", kcal: 250, protein: 4 },
+  { keywords: ["chips", "crisps"], name: "Chips (1 small bag)", kcal: 250, protein: 3 },
+  { keywords: ["popcorn"], name: "Popcorn (1 medium bag)", kcal: 300, protein: 5 },
+  { keywords: ["granola bar", "protein bar"], name: "Granola/Protein Bar (1)", kcal: 220, protein: 10 },
+  { keywords: ["trail mix"], name: "Trail Mix (1 handful)", kcal: 200, protein: 6 },
+  { keywords: ["banana"], name: "Banana (1 medium)", kcal: 105, protein: 1 },
+  { keywords: ["apple"], name: "Apple (1 medium)", kcal: 95, protein: 0 },
+  { keywords: ["mango"], name: "Mango (1 medium)", kcal: 200, protein: 3 },
+  { keywords: ["orange"], name: "Orange (1 medium)", kcal: 65, protein: 1 },
+  { keywords: ["boiled egg", "boiled eggs"], name: "Boiled Eggs (2)", kcal: 155, protein: 13 },
   { keywords: ["samosa"], name: "Samosa", kcal: 260, protein: 4 },
   { keywords: ["paratha", "parantha"], name: "Parantha (plain, with butter)", kcal: 300, protein: 6 },
   { keywords: ["butter chicken"], name: "Butter Chicken (1 serving)", kcal: 490, protein: 30 },
   { keywords: ["biryani"], name: "Biryani (1 plate)", kcal: 600, protein: 22 },
+  { keywords: ["dal", "daal"], name: "Dal (1 bowl, with rice)", kcal: 450, protein: 15 },
+  { keywords: ["rajma"], name: "Rajma Chawal (1 plate)", kcal: 500, protein: 16 },
+  { keywords: ["chole", "chana masala"], name: "Chole (1 serving, with rice/bread)", kcal: 500, protein: 14 },
+  { keywords: ["palak paneer"], name: "Palak Paneer (1 serving)", kcal: 450, protein: 18 },
+  { keywords: ["aloo gobi"], name: "Aloo Gobi (1 serving)", kcal: 300, protein: 6 },
+  { keywords: ["chowmein", "chow mein", "hakka noodles"], name: "Chowmein (1 plate)", kcal: 500, protein: 12 },
+  { keywords: ["momos"], name: "Momos (6 pc)", kcal: 300, protein: 10 },
+  { keywords: ["dhokla"], name: "Dhokla (4 pieces)", kcal: 200, protein: 6 },
+  { keywords: ["vada pav"], name: "Vada Pav (1)", kcal: 300, protein: 6 },
+  { keywords: ["kachori"], name: "Kachori (1)", kcal: 220, protein: 4 },
+  { keywords: ["pakora", "bhajiya"], name: "Pakora (1 plate)", kcal: 350, protein: 6 },
+  { keywords: ["jalebi"], name: "Jalebi (2-3 pieces)", kcal: 300, protein: 2 },
+  { keywords: ["gulab jamun"], name: "Gulab Jamun (2 pieces)", kcal: 300, protein: 4 },
+  { keywords: ["rasgulla"], name: "Rasgulla (2 pieces)", kcal: 200, protein: 4 },
+  { keywords: ["roti", "chapati", "phulka"], name: "Roti/Chapati (2, plain)", kcal: 200, protein: 6 },
+  { keywords: ["naan"], name: "Naan (1, plain)", kcal: 260, protein: 8 },
+  { keywords: ["curd rice"], name: "Curd Rice (1 bowl)", kcal: 300, protein: 8 },
+  { keywords: ["poha"], name: "Poha (1 plate)", kcal: 250, protein: 5 },
+  { keywords: ["upma"], name: "Upma (1 plate)", kcal: 250, protein: 6 },
+  { keywords: ["idli"], name: "Idli (3 pieces, with sambar)", kcal: 300, protein: 8 },
+  { keywords: ["dosa"], name: "Dosa (1, plain, with chutney)", kcal: 350, protein: 8 },
+  { keywords: ["uttapam"], name: "Uttapam (1, with chutney)", kcal: 350, protein: 8 },
 ];
+
+// When a food isn't in the list above at all, use lightweight keyword-based heuristics
+// instead of one identical generic number for everything — a "fried" item and a "salad"
+// shouldn't both come back as the same rough estimate just because neither matched.
+function estimateUnknownFood(q) {
+  let kcal = 300;
+  let protein = 8;
+  if (/fried|deep.?fried|crispy|butter|ghee|cheese|creamy|rich/.test(q)) {
+    kcal += 150;
+  }
+  if (/salad|soup|broth|steamed|boiled|grilled|lean/.test(q)) {
+    kcal -= 100;
+  }
+  if (/shake|smoothie|milkshake/.test(q)) {
+    kcal += 200;
+  }
+  if (/chicken|paneer|egg|fish|meat|mutton|lentil|dal|beans|lamb|beef|tofu/.test(q)) {
+    protein += 12;
+  }
+  if (/rice|noodles|pasta|bread|roti|naan|potato|biryani/.test(q)) {
+    kcal += 100;
+  }
+  if (/dessert|sweet|cake|halwa|ladoo|barfi|ice cream|sugar/.test(q)) {
+    kcal += 120;
+  }
+  return { kcal: Math.max(50, kcal), protein: Math.max(2, protein) };
+}
 
 function estimateFoodLocally(query) {
   const q = query.toLowerCase();
@@ -1894,7 +1971,10 @@ function estimateFoodLocally(query) {
     }
   }
   const isGuess = !match;
-  if (!match) match = { name: query, kcal: 300, protein: 8 };
+  if (!match) {
+    const guess = estimateUnknownFood(q);
+    match = { name: query, kcal: guess.kcal, protein: guess.protein };
+  }
 
   let kcal = match.kcal;
   let protein = match.protein;
@@ -2171,17 +2251,22 @@ function DishIllustration({ category = "other", size = 52 }) {
 // Maps a recipe to a Foodish API category when there's a solid visual match.
 // Returns null when no good match exists — those keep the hand-drawn illustration instead
 // of showing a mismatched stock photo (e.g. a burger photo for a milkshake).
+// Maps a recipe to a Foodish API category ONLY when there's a specific, verified-accurate
+// match on the actual dish name. Broad category-level fallbacks (e.g. "any curry gets a
+// rice photo," "any sandwich gets a burger photo") were removed after causing systematic
+// mismatches — a rice bowl photo for Palak Paneer or a burger photo for a grilled cheese
+// sandwich is actively misleading, worse than no photo at all. Anything that doesn't match
+// here falls through to a TheMealDB name search, and only then to the hand-drawn illustration.
 function getFoodishCategory(recipe) {
   const n = recipe.name.toLowerCase();
   if (/biryani/.test(n)) return "biryani";
   if (/butter chicken|tikka|kadai/.test(n)) return "butter-chicken";
-  if (/dosa/.test(n)) return "dosa";
-  if (/samosa/.test(n)) return "samosa";
-  if (/pizza/.test(n)) return "pizza";
-  if (/pasta/.test(n)) return "pasta";
-  if (/burger|sandwich|toastie|toast\b/.test(n)) return "burger";
-  if (recipe.category === "sweet") return "dessert";
-  if (recipe.category === "curry") return "rice";
+  if (/\bdosa\b/.test(n)) return "dosa";
+  if (/\bsamosa\b/.test(n)) return "samosa";
+  if (/\bpizza\b/.test(n)) return "pizza";
+  if (/\bpasta\b/.test(n)) return "pasta";
+  if (/\bburger\b/.test(n)) return "burger";
+  if (/\bdessert\b/.test(n)) return "dessert";
   return null;
 }
 
@@ -2246,7 +2331,7 @@ function RecipePhoto({ recipe, size = 52 }) {
   }
 
   return (
-    <div style={{ width: size, height: size, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: PALETTE.surface }}>
+    <div style={{ width: size, height: size, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: PALETTE.surface, border: `2px solid ${PALETTE.borderLight}`, boxShadow: "0 2px 6px rgba(0,0,0,0.3)" }}>
       {photoUrl ? (
         <img
           src={photoUrl}
@@ -2408,6 +2493,42 @@ function BasketIllustration({ size = 76 }) {
       <ellipse cx="42" cy="34" rx="9" ry="8" fill={PALETTE.cream} />
       <path d="M50 40 Q56 28 52 18" stroke={PALETTE.success} strokeWidth="4" fill="none" strokeLinecap="round" />
     </svg>
+  );
+}
+
+// A magnifying glass over a dashed, empty plate — used when filters/search return nothing.
+function EmptySearchIllustration({ size = 64 }) {
+  return (
+    <svg viewBox="0 0 80 80" width={size} height={size}>
+      <circle cx="38" cy="42" r="22" fill="none" stroke={PALETTE.border} strokeWidth="2.5" strokeDasharray="4 5" />
+      <circle cx="34" cy="34" r="12" fill="none" stroke={PALETTE.textMuted} strokeWidth="3.5" />
+      <line x1="43" y1="43" x2="56" y2="56" stroke={PALETTE.textMuted} strokeWidth="4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// A tiffin box with a checkmark and a couple of sparkles — used for "all done" empty states.
+function AllDoneIllustration({ size = 64 }) {
+  return (
+    <svg viewBox="0 0 80 80" width={size} height={size}>
+      <rect x="18" y="34" width="44" height="30" rx="9" fill={PALETTE.accent2} />
+      <rect x="18" y="34" width="44" height="10" rx="6" fill={PALETTE.accent} />
+      <circle cx="40" cy="52" r="11" fill={PALETTE.cream} />
+      <path d="M35 52 L39 56 L46 47" stroke={PALETTE.success} strokeWidth="3.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M20 20 L22 26 L28 28 L22 30 L20 36 L18 30 L12 28 L18 26 Z" fill={PALETTE.accent} opacity="0.8" />
+      <path d="M60 16 L61.5 20 L65.5 21.5 L61.5 23 L60 27 L58.5 23 L54.5 21.5 L58.5 20 Z" fill={PALETTE.success} opacity="0.7" />
+    </svg>
+  );
+}
+
+// A small reusable empty-state block: illustration + title + optional subtitle.
+function EmptyState({ illustration, title, subtitle }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "1.75rem 1rem", background: PALETTE.surface, borderRadius: "14px", border: `1px solid ${PALETTE.border}` }}>
+      {illustration}
+      <div style={{ fontSize: "0.88rem", color: PALETTE.textSecondary, fontWeight: 600, marginTop: "0.6rem" }}>{title}</div>
+      {subtitle && <div style={{ fontSize: "0.76rem", color: PALETTE.textMuted, marginTop: "0.25rem" }}>{subtitle}</div>}
+    </div>
   );
 }
 
@@ -2587,7 +2708,18 @@ function CookingMode({ recipe, onClose, onAddToShopping, onMarkMeal }) {
       {!gathering && (
         <div style={{ display: "flex", gap: "0.3rem", padding: "0.9rem 1.25rem 0", justifyContent: "center" }}>
           {steps.map((_, i) => (
-            <div key={i} style={{ height: "4px", flex: 1, maxWidth: "36px", borderRadius: "999px", background: i <= stepIdx ? PALETTE.accent : PALETTE.border, transition: "background 0.2s" }} />
+            <div
+              key={i}
+              style={{
+                height: "4px",
+                flex: 1,
+                maxWidth: "36px",
+                borderRadius: "999px",
+                background: i <= stepIdx ? PALETTE.accent : PALETTE.border,
+                boxShadow: i <= stepIdx ? `0 0 6px ${PALETTE.accent}88` : "none",
+                transition: "background 0.2s, box-shadow 0.2s",
+              }}
+            />
           ))}
         </div>
       )}
@@ -2601,7 +2733,7 @@ function CookingMode({ recipe, onClose, onAddToShopping, onMarkMeal }) {
               <button
                 key={ing + i}
                 onClick={() => toggleIngredient(i)}
-                style={{ width: "100%", display: "flex", alignItems: "center", gap: "0.7rem", background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: "10px", padding: "0.7rem 0.9rem", marginBottom: "0.4rem", cursor: "pointer" }}
+                style={{ width: "100%", display: "flex", alignItems: "center", gap: "0.7rem", background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: "10px", padding: "0.7rem 0.9rem", marginBottom: "0.4rem", cursor: "pointer", boxShadow: "0 2px 6px rgba(0,0,0,0.18)" }}
               >
                 <div
                   style={{
@@ -2630,14 +2762,31 @@ function CookingMode({ recipe, onClose, onAddToShopping, onMarkMeal }) {
 
             {timerMinutes && (
               <div style={{ marginTop: "2rem", display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem" }}>
-                <div className={running ? "timer-pulse" : ""} style={{ fontSize: "2.2rem", fontWeight: 700, fontFamily: "'Fraunces', serif", color: secondsLeft === 0 ? PALETTE.success : PALETTE.accent }}>
-                  {formatMMSS(secondsLeft || 0)}
+                <div className={running ? "timer-pulse" : ""} style={{ position: "relative", width: "150px", height: "150px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <svg width="150" height="150" style={{ position: "absolute", transform: "rotate(-90deg)" }}>
+                    <circle cx="75" cy="75" r="68" fill="none" stroke={PALETTE.surface} strokeWidth="7" />
+                    <circle
+                      cx="75"
+                      cy="75"
+                      r="68"
+                      fill="none"
+                      stroke={secondsLeft === 0 ? PALETTE.success : PALETTE.accent}
+                      strokeWidth="7"
+                      strokeLinecap="round"
+                      strokeDasharray={2 * Math.PI * 68}
+                      strokeDashoffset={2 * Math.PI * 68 * (1 - (secondsLeft || 0) / (timerMinutes * 60))}
+                      style={{ transition: "stroke-dashoffset 1s linear", filter: `drop-shadow(0 0 6px ${secondsLeft === 0 ? PALETTE.success : PALETTE.accent}88)` }}
+                    />
+                  </svg>
+                  <div style={{ fontSize: "2rem", fontWeight: 700, fontFamily: "'Fraunces', serif", color: secondsLeft === 0 ? PALETTE.success : PALETTE.accent }}>
+                    {formatMMSS(secondsLeft || 0)}
+                  </div>
                 </div>
                 <div style={{ display: "flex", gap: "0.6rem" }}>
                   <button
                     onClick={() => setRunning(!running)}
                     disabled={secondsLeft === 0}
-                    style={{ background: PALETTE.accent, border: "none", borderRadius: "999px", width: "48px", height: "48px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", opacity: secondsLeft === 0 ? 0.5 : 1 }}
+                    style={{ background: PALETTE.accent, border: "none", borderRadius: "999px", width: "48px", height: "48px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", opacity: secondsLeft === 0 ? 0.5 : 1, boxShadow: `0 4px 14px ${PALETTE.accent}55` }}
                   >
                     {running ? <Pause size={18} color={PALETTE.bg} /> : <Play size={18} color={PALETTE.bg} />}
                   </button>
@@ -2734,8 +2883,10 @@ const NAV_ITEMS = [
   { id: "shop", label: "Shop", icon: ShoppingBasket },
 ];
 
-function DynamicRecipeCard({ recipe, onAddToShopping, onSave, onRemove, onStartCooking, onRemix, onOpen, isFavorite, onToggleFavorite, badge, saved }) {
+function DynamicRecipeCard({ recipe, onAddToShopping, onSave, onRemove, onStartCooking, onRemix, onOpen, isFavorite, onToggleFavorite, badge, saved, note, onSaveNote }) {
   const [open, setOpen] = useState(false);
+  const [noteDraft, setNoteDraft] = useState(note || "");
+  const [editingNote, setEditingNote] = useState(false);
   return (
     <div className="card-hover fade-in" style={{ background: PALETTE.surface, borderRadius: "14px", marginBottom: "0.5rem", border: `1px solid ${PALETTE.border}`, overflow: "hidden" }}>
       <button
@@ -2824,6 +2975,44 @@ function DynamicRecipeCard({ recipe, onAddToShopping, onSave, onRemove, onStartC
               </button>
             )}
           </div>
+          {onSaveNote && (
+            <div style={{ marginTop: "0.75rem" }}>
+              {editingNote ? (
+                <div>
+                  <textarea
+                    value={noteDraft}
+                    onChange={(e) => setNoteDraft(e.target.value)}
+                    placeholder="e.g. too spicy, halve the chilli next time…"
+                    rows={2}
+                    style={{ width: "100%", background: PALETTE.surfaceDark, border: `1px solid ${PALETTE.border}`, borderRadius: "8px", padding: "0.5rem 0.7rem", color: PALETTE.textPrimary, fontSize: "0.78rem", outline: "none", resize: "none", fontFamily: "inherit" }}
+                  />
+                  <div style={{ display: "flex", gap: "0.4rem", marginTop: "0.4rem" }}>
+                    <button
+                      onClick={() => {
+                        onSaveNote(recipe.name, noteDraft);
+                        setEditingNote(false);
+                      }}
+                      style={{ background: PALETTE.success, border: "none", borderRadius: "6px", padding: "0.35rem 0.7rem", color: PALETTE.textPrimary, fontSize: "0.72rem", fontWeight: 700, cursor: "pointer" }}
+                    >
+                      Save note
+                    </button>
+                    <button onClick={() => setEditingNote(false)} style={{ background: "transparent", border: "none", color: PALETTE.textMuted, fontSize: "0.72rem", cursor: "pointer" }}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : note ? (
+                <button onClick={() => setEditingNote(true)} style={{ width: "100%", textAlign: "left", background: PALETTE.surfaceDark, border: `1px solid ${PALETTE.border}`, borderRadius: "8px", padding: "0.5rem 0.7rem", cursor: "pointer" }}>
+                  <div style={{ fontSize: "0.66rem", color: PALETTE.textMuted, marginBottom: "0.15rem" }}>📝 Your note</div>
+                  <div style={{ fontSize: "0.78rem", color: PALETTE.textSecondary }}>{note}</div>
+                </button>
+              ) : (
+                <button onClick={() => setEditingNote(true)} style={{ background: "transparent", border: "none", color: PALETTE.textMuted, fontSize: "0.74rem", cursor: "pointer", padding: 0 }}>
+                  + Add a note
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -2878,6 +3067,7 @@ function BulkTiffin() {
   const [storageEstimate, setStorageEstimate] = useState(null);
   const [importError, setImportError] = useState("");
   const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
   const [notifyPermission, setNotifyPermission] = useState(typeof Notification !== "undefined" ? Notification.permission : "unsupported");
   const [notifiedToday, setNotifiedToday] = useState([]);
   const [clockTick, setClockTick] = useState(0);
@@ -2918,11 +3108,12 @@ function BulkTiffin() {
   const [showBrowseLibrary, setShowBrowseLibrary] = useState(false);
   const [shoppingInput, setShoppingInput] = useState("");
   const [recipeFilter, setRecipeFilter] = useState("all");
-  const [recipeSlotFilter, setRecipeSlotFilter] = useState("all");
+  const [recipeSlotFilters, setRecipeSlotFilters] = useState([]);
   const [recipeDietFilter, setRecipeDietFilter] = useState("all");
   const [recipeSort, setRecipeSort] = useState("default");
   const [recipeListSearch, setRecipeListSearch] = useState("");
   const [surpriseRecipe, setSurpriseRecipe] = useState(null);
+  const [recipeNotes, setRecipeNotes] = useState({});
   const [deletedShoppingItem, setDeletedShoppingItem] = useState(null);
   const [favorites, setFavorites] = useState([]);
   const [dateKey, setDateKey] = useState(todayKey());
@@ -3051,6 +3242,10 @@ function BulkTiffin() {
         if (fv) setFavorites(JSON.parse(fv.value));
       } catch (e) {}
       try {
+        const rn = await window.storage.get("recipe-notes", false);
+        if (rn) setRecipeNotes(JSON.parse(rn.value));
+      } catch (e) {}
+      try {
         const granted = await window.storage.requestPersistence();
         setPersistenceGranted(granted);
       } catch (e) {}
@@ -3084,6 +3279,28 @@ function BulkTiffin() {
     setShowInstallBanner(false);
     try {
       await window.storage.set("install-banner-dismissed", JSON.stringify(true), false);
+    } catch (e) {}
+  };
+
+  // Show a brief, one-time welcome only for a genuinely fresh install (no history, no
+  // weigh-ins yet) — not a multi-step tour, just enough context to get the first tile
+  // checked off quickly, per the general finding that onboarding friction hurts more
+  // than it helps once there's an obvious first action available.
+  useEffect(() => {
+    if (!loaded) return;
+    if (Object.keys(history).length > 0 || weights.length > 0) return;
+    (async () => {
+      try {
+        const dismissed = await window.storage.get("welcome-dismissed", false);
+        if (!dismissed) setShowWelcome(true);
+      } catch (e) {}
+    })();
+  }, [loaded]);
+
+  const dismissWelcome = async () => {
+    setShowWelcome(false);
+    try {
+      await window.storage.set("welcome-dismissed", JSON.stringify(true), false);
     } catch (e) {}
   };
 
@@ -3182,9 +3399,10 @@ function BulkTiffin() {
       if (nowDone) {
         showToast("Nice — logged");
         bumpStreakIfNeeded();
+        if (showWelcome) dismissWelcome();
       }
     },
-    [dailyTasks, extraItems, streakData, key, history]
+    [dailyTasks, extraItems, streakData, key, history, showWelcome]
   );
 
   const addExtraCal = async () => {
@@ -3297,19 +3515,29 @@ function BulkTiffin() {
   const addManualShoppingItem = async (text) => {
     const trimmed = text.trim();
     if (!trimmed) return;
-    const existingNames = new Set(shopping.map((s) => s.item.toLowerCase()));
-    if (existingNames.has(trimmed.toLowerCase())) {
-      showToast("Already on your list");
-      return;
+    const existingIdx = shopping.findIndex((s) => s.item.toLowerCase() === trimmed.toLowerCase());
+    let updated;
+    if (existingIdx !== -1) {
+      updated = shopping.map((s, i) => (i === existingIdx ? { ...s, qty: (s.qty || 1) + 1, checked: false } : s));
+      showToast(`Bumped to ×${updated[existingIdx].qty}`);
+    } else {
+      updated = [...shopping, { item: trimmed, checked: false, qty: 1 }];
+      showToast("Added to list");
     }
-    const updated = [...shopping, { item: trimmed, checked: false }];
     setShopping(updated);
     try {
       await window.storage.set("shopping", JSON.stringify(updated), false);
-      showToast("Added to list");
     } catch (e) {
       showToast("Couldn't save — try again");
     }
+  };
+
+  const updateShoppingQty = async (idx, delta) => {
+    const updated = shopping.map((s, i) => (i === idx ? { ...s, qty: Math.max(1, (s.qty || 1) + delta) } : s));
+    setShopping(updated);
+    try {
+      await window.storage.set("shopping", JSON.stringify(updated), false);
+    } catch (e) {}
   };
 
   const removeFromPantry = async (itemName) => {
@@ -3321,12 +3549,14 @@ function BulkTiffin() {
     } catch (e) {}
   };
 
+  const formatShoppingItemLine = (s) => `• ${s.item}${(s.qty || 1) > 1 ? ` (×${s.qty})` : ""}`;
+
   const shareShoppingList = async (items) => {
     if (!items.length) {
       showToast("Nothing to share");
       return;
     }
-    const text = `Shopping list — Today's Dabba\n\n${items.map((s) => `• ${s.item}`).join("\n")}`;
+    const text = `Shopping list — Today's Dabba\n\n${items.map(formatShoppingItemLine).join("\n")}`;
     if (navigator.share) {
       try {
         await navigator.share({ text });
@@ -3348,7 +3578,7 @@ function BulkTiffin() {
       showToast("Nothing to copy");
       return;
     }
-    const text = `Shopping list — Today's Dabba\n\n${items.map((s) => `• ${s.item}`).join("\n")}`;
+    const text = `Shopping list — Today's Dabba\n\n${items.map(formatShoppingItemLine).join("\n")}`;
     try {
       await navigator.clipboard.writeText(text);
       showToast("List copied");
@@ -3377,7 +3607,7 @@ function BulkTiffin() {
 
   const addRecipeIngredientsToShopping = async (recipe) => {
     const existingNames = new Set(shopping.map((s) => s.item.toLowerCase()));
-    const toAdd = (recipe.ingredients || []).filter((ing) => !existingNames.has(ing.toLowerCase())).map((item) => ({ item, checked: false }));
+    const toAdd = (recipe.ingredients || []).filter((ing) => !existingNames.has(ing.toLowerCase())).map((item) => ({ item, checked: false, qty: 1 }));
     if (!toAdd.length) {
       showToast("Already on your list");
       return;
@@ -4124,6 +4354,18 @@ function BulkTiffin() {
     return days;
   }, [history]);
 
+  const allTimeStats = useMemo(() => {
+    const days = Object.values(history);
+    if (!days.length) return null;
+    const totalDaysLogged = days.length;
+    const overallAdherence = Math.round((days.reduce((s, d) => s + d.completed / d.total, 0) / days.length) * 100);
+    const dates = Object.keys(history).sort();
+    const firstDate = dates[0];
+    const daysSinceStart = Math.max(1, Math.round((new Date(todayKey()) - new Date(firstDate)) / 86400000) + 1);
+    const weightChange = weights.length >= 2 ? +(weights[weights.length - 1].weight - weights[0].weight).toFixed(1) : null;
+    return { totalDaysLogged, overallAdherence, daysSinceStart, weightChange, firstDate };
+  }, [history, weights]);
+
   const weeklyDigest = useMemo(() => {
     const days = [];
     for (let i = 6; i >= 0; i--) {
@@ -4232,6 +4474,16 @@ function BulkTiffin() {
     } catch (e) {}
   };
 
+  const saveRecipeNote = async (name, note) => {
+    const updated = { ...recipeNotes };
+    if (note && note.trim()) updated[name] = note.trim();
+    else delete updated[name];
+    setRecipeNotes(updated);
+    try {
+      await window.storage.set("recipe-notes", JSON.stringify(updated), false);
+    } catch (e) {}
+  };
+
   // The unified recipe library: built-in + saved recipes, combined, filtered, and sorted.
   // This is the "biggest menu" view — everything you have local access to in one place.
   const isSavedRecipe = (name) => savedRecipes.some((r) => r.name === name);
@@ -4243,7 +4495,7 @@ function BulkTiffin() {
       list = list.filter((r) => r.name.toLowerCase().includes(q));
     }
     if (recipeFilter !== "all") list = list.filter((r) => r.category === recipeFilter);
-    if (recipeSlotFilter !== "all") list = list.filter((r) => (r.slots || []).includes(recipeSlotFilter));
+    if (recipeSlotFilters.length) list = list.filter((r) => (r.slots || []).some((s) => recipeSlotFilters.includes(s)));
     if (recipeDietFilter !== "all") list = list.filter((r) => inferDiet(r) === recipeDietFilter);
 
     list = [...list];
@@ -4259,7 +4511,7 @@ function BulkTiffin() {
       list.sort((a, b) => (favorites.includes(b.name) ? 1 : 0) - (favorites.includes(a.name) ? 1 : 0));
     }
     return list;
-  }, [savedRecipes, recipeListSearch, recipeFilter, recipeSlotFilter, recipeDietFilter, recipeSort, recipeOpens, favorites]);
+  }, [savedRecipes, recipeListSearch, recipeFilter, recipeSlotFilters, recipeDietFilter, recipeSort, recipeOpens, favorites]);
 
   const recentlyViewedRecipes = useMemo(() => {
     const allRecipesForLookup = [...RECIPES, ...savedRecipes];
@@ -4857,6 +5109,20 @@ function BulkTiffin() {
       <div key={tab} className="page-enter" style={{ maxWidth: "480px", margin: "0 auto", position: "relative", zIndex: 1 }} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
         {tab === "today" && (
           <>
+            {showWelcome && (
+              <div className="fade-in" style={{ margin: "1.25rem 1.25rem 0" }}>
+                <div style={{ background: `linear-gradient(135deg, ${PALETTE.accent2} 0%, ${PALETTE.amberDark} 100%)`, borderRadius: "18px", padding: "1.1rem 1.2rem", boxShadow: "0 8px 24px rgba(0,0,0,0.3)" }}>
+                  <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: "1.05rem", color: PALETTE.bg, marginBottom: "0.4rem" }}>Welcome to Today's Dabba 🍱</div>
+                  <div style={{ fontSize: "0.82rem", color: PALETTE.bg, opacity: 0.85, lineHeight: 1.5, marginBottom: "0.8rem" }}>
+                    Six tiles, one cook session a night. Tap a tile off as you go — everything else (calories, streaks, your recipe library) builds from there.
+                  </div>
+                  <button onClick={dismissWelcome} style={{ background: PALETTE.bg, border: "none", borderRadius: "999px", padding: "0.5rem 1rem", color: PALETTE.textPrimary, fontWeight: 700, fontSize: "0.8rem", cursor: "pointer" }}>
+                    Let's go
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Mascot hero */}
             <div style={{ margin: "1.25rem 1.25rem 0" }}>
               <div
@@ -5192,6 +5458,44 @@ function BulkTiffin() {
               </div>
             )}
 
+            {allTimeStats && (
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: "0.5rem",
+                  background: `linear-gradient(135deg, ${PALETTE.surface} 0%, ${PALETTE.surfaceDark} 100%)`,
+                  border: `1px solid ${PALETTE.border}`,
+                  borderRadius: "16px",
+                  padding: "1rem",
+                  marginBottom: "1.5rem",
+                  boxShadow: "0 6px 20px rgba(0,0,0,0.24)",
+                }}
+              >
+                <div style={{ textAlign: "center", flex: 1 }}>
+                  <div style={{ fontSize: "1.1rem", fontWeight: 700, fontFamily: "'Fraunces', serif" }}>{allTimeStats.daysSinceStart}</div>
+                  <div style={{ fontSize: "0.64rem", color: PALETTE.textMuted }}>days on the plan</div>
+                </div>
+                <div style={{ width: "1px", background: PALETTE.border }} />
+                <div style={{ textAlign: "center", flex: 1 }}>
+                  <div style={{ fontSize: "1.1rem", fontWeight: 700, fontFamily: "'Fraunces', serif", color: PALETTE.success }}>{allTimeStats.overallAdherence}%</div>
+                  <div style={{ fontSize: "0.64rem", color: PALETTE.textMuted }}>all-time adherence</div>
+                </div>
+                <div style={{ width: "1px", background: PALETTE.border }} />
+                <div style={{ textAlign: "center", flex: 1 }}>
+                  <div style={{ fontSize: "1.1rem", fontWeight: 700, fontFamily: "'Fraunces', serif", color: allTimeStats.weightChange > 0 ? PALETTE.accent : PALETTE.textPrimary }}>
+                    {allTimeStats.weightChange !== null ? `${allTimeStats.weightChange > 0 ? "+" : ""}${allTimeStats.weightChange}kg` : "—"}
+                  </div>
+                  <div style={{ fontSize: "0.64rem", color: PALETTE.textMuted }}>total change</div>
+                </div>
+                <div style={{ width: "1px", background: PALETTE.border }} />
+                <div style={{ textAlign: "center", flex: 1 }}>
+                  <div style={{ fontSize: "1.1rem", fontWeight: 700, fontFamily: "'Fraunces', serif", color: PALETTE.accent2 }}>{streakData.bestStreak || 0}</div>
+                  <div style={{ fontSize: "0.64rem", color: PALETTE.textMuted }}>best streak</div>
+                </div>
+              </div>
+            )}
+
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
               <Scale size={18} color={PALETTE.success} />
               <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: "1.15rem", fontWeight: 600, margin: 0 }}>Weight</h2>
@@ -5320,10 +5624,10 @@ function BulkTiffin() {
             </div>
 
             {weeklyDigest && (
-              <div style={{ marginTop: "1.75rem", background: PALETTE.surface, borderRadius: "16px", padding: "1.1rem", border: `1px solid ${PALETTE.border}` }}>
+              <div style={{ marginTop: "1.75rem", background: `linear-gradient(135deg, ${PALETTE.surface} 0%, ${PALETTE.surfaceDark} 100%)`, borderRadius: "16px", padding: "1.1rem", border: `1px solid ${PALETTE.border}`, boxShadow: "0 6px 20px rgba(0,0,0,0.24)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
                   <Sparkles size={16} color={PALETTE.accent2} />
-                  <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: "1.05rem", fontWeight: 600, margin: 0 }}>This week</h2>
+                  <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: "1.05rem", fontWeight: 700, margin: 0 }}>This week</h2>
                 </div>
                 <div style={{ display: "flex", gap: "1.25rem", flexWrap: "wrap", marginBottom: "0.85rem" }}>
                   <div>
@@ -5344,10 +5648,10 @@ function BulkTiffin() {
             )}
 
             {adaptiveEngine && (
-              <div style={{ marginTop: "0.75rem", background: PALETTE.surfaceDark, borderRadius: "16px", padding: "1.1rem", border: `1px solid ${PALETTE.border}` }}>
+              <div style={{ marginTop: "0.75rem", background: `linear-gradient(135deg, ${PALETTE.surfaceDark} 0%, ${PALETTE.bg} 100%)`, borderRadius: "16px", padding: "1.1rem", border: `1px solid ${PALETTE.border}`, boxShadow: "0 6px 20px rgba(0,0,0,0.24)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.6rem" }}>
                   <TrendingUp size={16} color={PALETTE.success} />
-                  <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: "1.05rem", fontWeight: 600, margin: 0 }}>Adaptive target</h2>
+                  <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: "1.05rem", fontWeight: 700, margin: 0 }}>Adaptive target</h2>
                   {!adaptiveEngine.confident && (
                     <span style={{ fontSize: "0.62rem", background: PALETTE.border, color: PALETTE.textMuted, borderRadius: "999px", padding: "0.15rem 0.5rem", fontWeight: 700 }}>PROVISIONAL</span>
                   )}
@@ -5396,13 +5700,15 @@ function BulkTiffin() {
             <div style={{ marginTop: "1.75rem" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
                 <PartyPopper size={18} color={PALETTE.accent2} />
-                <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: "1.15rem", fontWeight: 600, margin: 0 }}>
+                <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: "1.15rem", fontWeight: 700, margin: 0 }}>
                   Badges {streakData.bestStreak > 0 && <span style={{ fontSize: "0.75rem", color: PALETTE.textMuted, fontWeight: 400 }}>· best streak {streakData.bestStreak} days</span>}
                 </h2>
               </div>
-              <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: "0.7rem", flexWrap: "wrap" }}>
                 {MILESTONES.map((m) => {
                   const unlocked = (streakData.bestStreak || 0) >= m;
+                  const BadgeIcon = { 7: Flame, 14: Sparkles, 30: ShieldCheck, 50: Star, 66: PartyPopper, 100: CheckCircle2 }[m] || Flame;
+                  const badgeColor = { 7: PALETTE.accent2, 14: PALETTE.success, 30: PALETTE.accent, 50: PALETTE.accent, 66: PALETTE.accent2, 100: PALETTE.success }[m] || PALETTE.accent;
                   return (
                     <div
                       key={m}
@@ -5411,26 +5717,36 @@ function BulkTiffin() {
                         display: "flex",
                         flexDirection: "column",
                         alignItems: "center",
-                        gap: "0.3rem",
-                        width: "62px",
+                        gap: "0.35rem",
+                        width: "64px",
                       }}
                     >
                       <div
                         style={{
-                          width: "48px",
-                          height: "48px",
+                          width: "52px",
+                          height: "52px",
                           borderRadius: "50%",
-                          background: unlocked ? PALETTE.accent : PALETTE.surface,
-                          border: `1px solid ${unlocked ? PALETTE.accent : PALETTE.border}`,
+                          background: unlocked ? `linear-gradient(150deg, ${badgeColor} 0%, ${PALETTE.amberDark} 100%)` : PALETTE.surface,
+                          border: `1px solid ${unlocked ? badgeColor : PALETTE.border}`,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          opacity: unlocked ? 1 : 0.55,
+                          opacity: unlocked ? 1 : 0.5,
+                          boxShadow: unlocked ? `0 0 0 3px ${PALETTE.bg}, 0 0 14px ${badgeColor}77, inset 0 2px 3px rgba(255,255,255,0.25), inset 0 -2px 4px rgba(0,0,0,0.25)` : "inset 0 1px 3px rgba(0,0,0,0.3)",
+                          position: "relative",
                         }}
                       >
-                        <Flame size={20} color={unlocked ? PALETTE.bg : PALETTE.textMutedBrown} />
+                        <BadgeIcon size={22} color={unlocked ? PALETTE.bg : PALETTE.textMutedBrown} fill={unlocked && (m === 50 || m === 100) ? PALETTE.bg : "none"} />
+                        {!unlocked && (
+                          <div style={{ position: "absolute", bottom: "-2px", right: "-2px", width: "18px", height: "18px", borderRadius: "50%", background: PALETTE.surfaceDark, border: `1px solid ${PALETTE.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke={PALETTE.textMuted} strokeWidth="2.5">
+                              <rect x="5" y="11" width="14" height="9" rx="2" />
+                              <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+                            </svg>
+                          </div>
+                        )}
                       </div>
-                      <span style={{ fontSize: "0.68rem", color: unlocked ? PALETTE.textPrimary : PALETTE.textMutedBrown, fontWeight: 600 }}>{m}d</span>
+                      <span style={{ fontSize: "0.68rem", color: unlocked ? PALETTE.textPrimary : PALETTE.textMutedBrown, fontWeight: unlocked ? 700 : 600 }}>{m}d</span>
                     </div>
                   );
                 })}
@@ -5737,6 +6053,8 @@ function BulkTiffin() {
                     onRemix={openRemix}
                     isFavorite={favorites.includes(surpriseRecipe.name)}
                     onToggleFavorite={toggleFavorite}
+                    note={recipeNotes[surpriseRecipe.name]}
+                    onSaveNote={saveRecipeNote}
                   />
                 </div>
               )}
@@ -5807,27 +6125,38 @@ function BulkTiffin() {
                 ))}
               </div>
 
-              <div style={{ fontSize: "0.66rem", color: PALETTE.textMutedGreen, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 0.3rem 0.15rem" }}>Meal</div>
-              <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginBottom: "0.6rem" }}>
-                {["all", "breakfast", "lunch", "dinner", "snack"].map((slot) => (
-                  <button
-                    key={slot}
-                    onClick={() => setRecipeSlotFilter(slot)}
-                    style={{
-                      background: recipeSlotFilter === slot ? PALETTE.success : PALETTE.surface,
-                      border: `1px solid ${recipeSlotFilter === slot ? PALETTE.success : PALETTE.border}`,
-                      borderRadius: "999px",
-                      padding: "0.32rem 0.7rem",
-                      color: recipeSlotFilter === slot ? PALETTE.textPrimary : PALETTE.textSecondary,
-                      fontSize: "0.7rem",
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      textTransform: "capitalize",
-                    }}
-                  >
-                    {slot}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "0 0 0.3rem 0.15rem" }}>
+                <div style={{ fontSize: "0.66rem", color: PALETTE.textMutedGreen, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>Meal (tap multiple)</div>
+                {recipeSlotFilters.length > 0 && (
+                  <button onClick={() => setRecipeSlotFilters([])} style={{ background: "transparent", border: "none", color: PALETTE.textMuted, fontSize: "0.66rem", cursor: "pointer" }}>
+                    Clear
                   </button>
-                ))}
+                )}
+              </div>
+              <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginBottom: "0.6rem" }}>
+                {["breakfast", "lunch", "dinner", "snack"].map((slot) => {
+                  const active = recipeSlotFilters.includes(slot);
+                  return (
+                    <button
+                      key={slot}
+                      onClick={() => setRecipeSlotFilters(active ? recipeSlotFilters.filter((s) => s !== slot) : [...recipeSlotFilters, slot])}
+                      style={{
+                        background: active ? PALETTE.success : PALETTE.surface,
+                        border: `1px solid ${active ? PALETTE.success : PALETTE.border}`,
+                        borderRadius: "999px",
+                        padding: "0.32rem 0.7rem",
+                        color: active ? PALETTE.textPrimary : PALETTE.textSecondary,
+                        fontSize: "0.7rem",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        textTransform: "capitalize",
+                      }}
+                    >
+                      {active && "✓ "}
+                      {slot}
+                    </button>
+                  );
+                })}
               </div>
 
               <div style={{ fontSize: "0.66rem", color: PALETTE.textMutedGreen, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 0.3rem 0.15rem" }}>Diet</div>
@@ -5901,6 +6230,8 @@ function BulkTiffin() {
                     onRemix={openRemix}
                     isFavorite={favorites.includes(r.name)}
                     onToggleFavorite={toggleFavorite}
+                    note={recipeNotes[r.name]}
+                    onSaveNote={saveRecipeNote}
                     badge={
                       staleRecipeName === r.name && (
                         <span style={{ display: "inline-flex", alignItems: "center", gap: "0.2rem", background: PALETTE.border, color: PALETTE.accent2, fontSize: "0.62rem", fontWeight: 700, borderRadius: "999px", padding: "0.15rem 0.5rem" }}>
@@ -5911,9 +6242,7 @@ function BulkTiffin() {
                   />
                 ))
               ) : (
-                <div style={{ background: PALETTE.surface, borderRadius: "14px", border: `1px solid ${PALETTE.border}`, padding: "1rem", fontSize: "0.82rem", color: PALETTE.textMuted, textAlign: "center" }}>
-                  No recipes match those filters — try loosening them.
-                </div>
+                <EmptyState illustration={<EmptySearchIllustration />} title="No recipes match those filters" subtitle="Try loosening a filter or clearing the search." />
               )}
             </div>
           </div>
@@ -5992,11 +6321,11 @@ function BulkTiffin() {
                 grouped[aisle].push(s);
               });
 
-              const renderRow = (s, { showStrike = false, onDelete = null, extraAction = null } = {}) => (
+              const renderRow = (s, { showStrike = false, onDelete = null, extraAction = null, showQtyControls = true } = {}) => (
                 <div key={s.item + s.idx} style={{ width: "100%", display: "flex", alignItems: "center", gap: "0.6rem", padding: "0.65rem 0.6rem" }}>
                   <button
                     onClick={() => toggleShopping(s.idx)}
-                    style={{ display: "flex", alignItems: "center", gap: "0.75rem", background: "transparent", border: "none", padding: 0, cursor: "pointer", textAlign: "left", flex: 1 }}
+                    style={{ display: "flex", alignItems: "center", gap: "0.75rem", background: "transparent", border: "none", padding: 0, cursor: "pointer", textAlign: "left", flex: 1, minWidth: 0 }}
                   >
                     <div
                       style={{
@@ -6013,8 +6342,29 @@ function BulkTiffin() {
                     >
                       {s.checked && <Check size={14} color={PALETTE.textPrimary} strokeWidth={3} className="check-pop" />}
                     </div>
-                    <span style={{ fontSize: "0.9rem", color: s.checked ? PALETTE.textMutedGreen : PALETTE.textPrimary, textDecoration: showStrike && s.checked ? "line-through" : "none" }}>{s.item}</span>
+                    <span style={{ fontSize: "0.9rem", color: s.checked ? PALETTE.textMutedGreen : PALETTE.textPrimary, textDecoration: showStrike && s.checked ? "line-through" : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {s.item}
+                    </span>
                   </button>
+                  {showQtyControls && !s.checked ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.3rem", flexShrink: 0, background: PALETTE.surfaceDark, borderRadius: "999px", padding: "0.15rem" }}>
+                      <button
+                        onClick={() => updateShoppingQty(s.idx, -1)}
+                        style={{ width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: "none", color: PALETTE.textMuted, cursor: "pointer", fontSize: "0.9rem", lineHeight: 1 }}
+                      >
+                        −
+                      </button>
+                      <span style={{ fontSize: "0.72rem", color: PALETTE.textSecondary, minWidth: "14px", textAlign: "center", fontWeight: 600 }}>{s.qty || 1}</span>
+                      <button
+                        onClick={() => updateShoppingQty(s.idx, 1)}
+                        style={{ width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: "none", color: PALETTE.textMuted, cursor: "pointer", fontSize: "0.9rem", lineHeight: 1 }}
+                      >
+                        +
+                      </button>
+                    </div>
+                  ) : (
+                    (s.qty || 1) > 1 && <span style={{ fontSize: "0.72rem", color: PALETTE.textMuted, flexShrink: 0 }}>×{s.qty}</span>
+                  )}
                   {extraAction}
                   {onDelete && (
                     <button onClick={onDelete} title="Remove from list" style={{ background: "transparent", border: "none", cursor: "pointer", padding: "0.2rem", flexShrink: 0 }}>
@@ -6040,7 +6390,7 @@ function BulkTiffin() {
                         </div>
                       ))
                     ) : (
-                      <div style={{ background: PALETTE.surface, borderRadius: "14px", border: `1px solid ${PALETTE.border}`, padding: "0.9rem 0.6rem", fontSize: "0.82rem", color: PALETTE.textMuted }}>Nothing left to buy 🎉</div>
+                      <EmptyState illustration={<AllDoneIllustration />} title="Nothing left to buy" subtitle="Your pantry's covered — nice." />
                     )}
                   </div>
 
