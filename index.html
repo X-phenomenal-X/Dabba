@@ -39,6 +39,7 @@
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 
 <script>
 // ---- window.storage: IndexedDB-backed, matching the same get/set/delete/list interface ----
@@ -2177,8 +2178,29 @@ const DISH_THEME = {
 };
 
 // Cute flat-style dish illustrations, category-matched, no external images needed.
+const CATEGORY_IMAGE = {
+  curry: "cat-curry.png",
+  noodles: "cat-noodles.png",
+  sandwich: "cat-sandwich.png",
+  egg: "cat-egg.png",
+  drink: "cat-drink.png",
+  sweet: "cat-sweet.png",
+  other: "cat-other.png",
+};
+
 function DishIllustration({ category = "other", size = 52 }) {
+  const [failed, setFailed] = useState(false);
   const theme = DISH_THEME[category] || DISH_THEME.other;
+  const imageSrc = CATEGORY_IMAGE[category] || CATEGORY_IMAGE.other;
+
+  if (!failed) {
+    return (
+      <div style={{ width: size, height: size, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: theme.bg }}>
+        <img src={imageSrc} alt="" width={size} height={size} onError={() => setFailed(true)} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+      </div>
+    );
+  }
+
   const icon = {
     curry: (
       <>
@@ -2413,6 +2435,30 @@ function Ring({ pct, size = 84, stroke = 9, color, label, value, target, unit })
   const circ = 2 * Math.PI * r;
   const offset = circ - (Math.min(pct, 100) / 100) * circ;
 
+  // Smoothly counts the displayed number up (or down) toward the real value instead of
+  // jumping instantly, so logging a meal feels like it visibly adds up.
+  const [displayValue, setDisplayValue] = useState(value);
+  const animRef = useRef(null);
+  useEffect(() => {
+    const start = displayValue;
+    const end = value;
+    if (start === end) return;
+    const duration = 500;
+    const startTime = performance.now();
+    if (animRef.current) cancelAnimationFrame(animRef.current);
+    const tick = (now) => {
+      const t = Math.min(1, (now - startTime) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setDisplayValue(Math.round(start + (end - start) * eased));
+      if (t < 1) animRef.current = requestAnimationFrame(tick);
+    };
+    animRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (animRef.current) cancelAnimationFrame(animRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
   // When the target is exceeded, a thin outer arc shows how far past 100% — framed as a
   // bonus, not a warning, since going over on calories/protein is the actual goal here.
   const overflowPct = pct > 100 ? Math.min(100, pct - 100) : 0;
@@ -2459,7 +2505,7 @@ function Ring({ pct, size = 84, stroke = 9, color, label, value, target, unit })
           transform={`rotate(90 ${cx} ${cx})`}
           style={{ fill: PALETTE.textPrimary, fontSize: "0.95rem", fontWeight: 700, fontFamily: "'Fraunces', serif" }}
         >
-          {value}
+          {displayValue}
         </text>
       </svg>
       <div style={{ textAlign: "center" }}>
@@ -3042,6 +3088,16 @@ function DynamicRecipeCard({ recipe, onAddToShopping, onSave, onRemove, onStartC
 
 function BulkTiffin() {
   const [tab, setTab] = useState("today");
+  const [slideDirection, setSlideDirection] = useState("right");
+  const prevTabIndexRef = useRef(0);
+
+  useEffect(() => {
+    const idx = NAV_ITEMS.findIndex((i) => i.id === tab);
+    if (idx === -1) return;
+    setSlideDirection(idx >= prevTabIndexRef.current ? "right" : "left");
+    prevTabIndexRef.current = idx;
+  }, [tab]);
+
   const [dailyTasks, setDailyTasks] = useState({});
   const [weights, setWeights] = useState([]);
   const [weightInput, setWeightInput] = useState("");
@@ -3089,6 +3145,8 @@ function BulkTiffin() {
   const [importError, setImportError] = useState("");
   const [showInstallBanner, setShowInstallBanner] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
+  const [show3DMascot, setShow3DMascot] = useState(false);
+  const [mascotViewMode, setMascotViewMode] = useState("video");
   const [notifyPermission, setNotifyPermission] = useState(typeof Notification !== "undefined" ? Notification.permission : "unsupported");
   const [notifiedToday, setNotifiedToday] = useState([]);
   const [clockTick, setClockTick] = useState(0);
@@ -4612,11 +4670,22 @@ function BulkTiffin() {
           filter: blur(60px);
           pointer-events: none;
           z-index: 0;
+          animation: blobDrift 14s ease-in-out infinite;
+        }
+        @keyframes blobDrift {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          50% { transform: translate(12px, -14px) scale(1.08); }
         }
         .tier-btn:active { transform: scale(0.98); }
         .fade-in { animation: fadeIn 0.3s ease; }
         .pop-in { animation: popIn 0.4s cubic-bezier(.34,1.56,.64,1); }
-        .page-enter { animation: pageEnter 0.32s cubic-bezier(.22,1,.36,1); }
+        .page-enter { animation: pageEnterRight 0.32s cubic-bezier(.22,1,.36,1); }
+        .page-enter-right { animation: pageEnterRight 0.32s cubic-bezier(.22,1,.36,1); }
+        .page-enter-left { animation: pageEnterLeft 0.32s cubic-bezier(.22,1,.36,1); }
+        .nav-icon-bounce { animation: navBounce 0.4s cubic-bezier(.34,1.56,.64,1); }
+        @keyframes navBounce { 0% { transform: scale(1); } 40% { transform: scale(1.28); } 100% { transform: scale(1); } }
+        @keyframes pageEnterRight { from { opacity: 0; transform: translateX(16px);} to { opacity: 1; transform: translateX(0);} }
+        @keyframes pageEnterLeft { from { opacity: 0; transform: translateX(-16px);} to { opacity: 1; transform: translateX(0);} }
         .check-pop { animation: checkPop 0.35s cubic-bezier(.34,1.56,.64,1); }
         .nav-btn { transition: color 0.2s ease, transform 0.15s ease; }
         .nav-btn:active { transform: scale(0.92); }
@@ -4628,7 +4697,7 @@ function BulkTiffin() {
         @keyframes dabbaSpin { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(4px);} to { opacity: 1; transform: translateY(0);} }
         @keyframes popIn { from { opacity: 0; transform: scale(0.7);} to { opacity: 1; transform: scale(1);} }
-        @keyframes pageEnter { from { opacity: 0; transform: translateY(10px);} to { opacity: 1; transform: translateY(0);} }
+
         @keyframes checkPop { 0% { transform: scale(0); } 60% { transform: scale(1.3); } 100% { transform: scale(1); } }
         @keyframes confettiFall {
           0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
@@ -4714,6 +4783,59 @@ function BulkTiffin() {
           setCookingRecipe(null);
         }}
       />
+
+      {/* Meet your mascot — 3D/video showcase, lazy-loaded only when tapped open so it
+          never adds weight to normal page loads (the GLB model alone is several MB). */}
+      {show3DMascot && (
+        <div
+          className="fade-in"
+          style={{ position: "fixed", inset: 0, zIndex: 80, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1.25rem" }}
+          onClick={() => setShow3DMascot(false)}
+        >
+          <div
+            style={{ background: PALETTE.surface, borderRadius: "20px", padding: "1.1rem", maxWidth: "380px", width: "100%", border: `1px solid ${PALETTE.border}`, boxShadow: "0 20px 60px rgba(0,0,0,0.5)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.8rem" }}>
+              <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: "1.05rem" }}>Meet Dabba</div>
+              <button onClick={() => setShow3DMascot(false)} style={{ background: PALETTE.surfaceDark, border: "none", borderRadius: "999px", width: "30px", height: "30px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                <X size={14} color={PALETTE.textMuted} />
+              </button>
+            </div>
+
+            <div style={{ width: "100%", aspectRatio: "1", borderRadius: "14px", overflow: "hidden", background: PALETTE.bg, marginBottom: "0.9rem" }}>
+              {mascotViewMode === "video" ? (
+                <video src="mascot-orbit.mp4" autoPlay muted loop playsInline style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+              ) : (
+                <model-viewer
+                  src="mascot.glb"
+                  auto-rotate
+                  camera-controls
+                  shadow-intensity="1"
+                  exposure="1"
+                  style={{ width: "100%", height: "100%", backgroundColor: PALETTE.bg }}
+                ></model-viewer>
+              )}
+            </div>
+
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <button
+                onClick={() => setMascotViewMode("video")}
+                style={{ flex: 1, background: mascotViewMode === "video" ? PALETTE.accent : PALETTE.surfaceDark, border: "none", borderRadius: "10px", padding: "0.6rem", color: mascotViewMode === "video" ? PALETTE.bg : PALETTE.textSecondary, fontWeight: 700, fontSize: "0.8rem", cursor: "pointer" }}
+              >
+                Cinematic
+              </button>
+              <button
+                onClick={() => setMascotViewMode("3d")}
+                style={{ flex: 1, background: mascotViewMode === "3d" ? PALETTE.accent : PALETTE.surfaceDark, border: "none", borderRadius: "10px", padding: "0.6rem", color: mascotViewMode === "3d" ? PALETTE.bg : PALETTE.textSecondary, fontWeight: 700, fontSize: "0.8rem", cursor: "pointer" }}
+              >
+                Interactive 3D
+              </button>
+            </div>
+            {mascotViewMode === "3d" && <div style={{ fontSize: "0.68rem", color: PALETTE.textMuted, textAlign: "center", marginTop: "0.5rem" }}>Drag to rotate, pinch to zoom</div>}
+          </div>
+        </div>
+      )}
 
       {/* Day drill-down */}
       {selectedDay && history[selectedDay] && (
@@ -5127,7 +5249,7 @@ function BulkTiffin() {
       )}
 
       {/* Page content */}
-      <div key={tab} className="page-enter" style={{ maxWidth: "480px", margin: "0 auto", position: "relative", zIndex: 1 }} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+      <div key={tab} className={`page-enter page-enter-${slideDirection}`} style={{ maxWidth: "480px", margin: "0 auto", position: "relative", zIndex: 1 }} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
         {tab === "today" && (
           <>
             {showWelcome && (
@@ -5161,7 +5283,16 @@ function BulkTiffin() {
                 }}
               >
                 <div style={{ position: "absolute", top: "-40px", right: "-30px", width: "140px", height: "140px", borderRadius: "50%", background: PALETTE.accent, opacity: 0.06 }} />
-                <Mascot pct={Math.round((completedCount / TASKS.length) * 100)} />
+                <button
+                  onClick={() => {
+                    setShow3DMascot(true);
+                    setMascotViewMode("video");
+                  }}
+                  style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer" }}
+                  title="Tap to see Dabba in 3D"
+                >
+                  <Mascot pct={Math.round((completedCount / TASKS.length) * 100)} />
+                </button>
                 <div style={{ flex: 1, position: "relative", zIndex: 1 }}>
                   <div style={{ fontSize: "1rem", fontWeight: 900, letterSpacing: "-0.01em" }}>
                     {timeGreeting()}, Abhi
@@ -6522,7 +6653,7 @@ function BulkTiffin() {
                   zIndex: 1,
                 }}
               >
-                <div style={{ position: "relative" }}>
+                <div style={{ position: "relative" }} className={active ? "nav-icon-bounce" : ""}>
                   <Icon size={20} strokeWidth={active ? 2.4 : 2} />
                   {item.id === "today" && streakData.streak > 0 && (
                     <span
