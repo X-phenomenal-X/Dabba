@@ -1,4 +1,4 @@
-const CACHE_NAME = "dabba-cache-v6";
+const CACHE_NAME = "dabba-cache-v7";
 const APP_SHELL = [
   "./manifest.json",
   "./icon-192.png",

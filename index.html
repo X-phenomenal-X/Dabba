@@ -4171,8 +4171,14 @@ function BulkTiffin() {
   };
 
   const addPantryItem = async () => {
-    if (!newPantryItem.trim()) return;
-    const updated = [...pantryItems, { name: newPantryItem.trim(), selected: true }];
+    const trimmed = newPantryItem.trim();
+    if (!trimmed) return;
+    if (pantryItems.some((p) => p.name.toLowerCase() === trimmed.toLowerCase())) {
+      showToast("Already in your pantry");
+      setNewPantryItem("");
+      return;
+    }
+    const updated = [...pantryItems, { name: trimmed, selected: true }];
     setPantryItems(updated);
     setNewPantryItem("");
     try {
@@ -4751,14 +4757,33 @@ function BulkTiffin() {
         fontFamily: "'Satoshi', sans-serif",
         paddingBottom: "5.5rem",
         position: "relative",
-        overflow: "hidden",
+        overflowX: "hidden",
       }}
     >
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&display=swap');
         @import url('https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap');
+        :root {
+          --motion-spring: cubic-bezier(.22,1,.36,1);
+          --motion-bounce: cubic-bezier(.34,1.56,.64,1);
+          --motion-snappy: cubic-bezier(.2,.8,.2,1);
+        }
         * { box-sizing: border-box; }
-        body { margin: 0; }
+        html { background: ${PALETTE.bg}; scroll-behavior: smooth; }
+        body {
+          margin: 0;
+          background: ${PALETTE.bg};
+          overscroll-behavior-y: none;
+          -webkit-tap-highlight-color: transparent;
+          text-rendering: optimizeLegibility;
+        }
+        button, input, textarea, select { font: inherit; }
+        button { touch-action: manipulation; }
+        button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+          outline: 2px solid ${PALETTE.accent};
+          outline-offset: 3px;
+        }
+        ::selection { background: rgba(227,160,8,0.28); color: ${PALETTE.cream}; }
         .dot-texture {
           position: fixed;
           inset: 0;
@@ -4779,33 +4804,116 @@ function BulkTiffin() {
           0%, 100% { transform: translate(0, 0) scale(1); }
           50% { transform: translate(12px, -14px) scale(1.08); }
         }
-        .tier-btn:active { transform: scale(0.98); }
-        .fade-in { animation: fadeIn 0.3s ease; }
-        .pop-in { animation: popIn 0.4s cubic-bezier(.34,1.56,.64,1); }
-        .sheet-slide-up { animation: sheetSlideUp 0.3s cubic-bezier(.22,1,.36,1); }
+        .app-header {
+          box-shadow: 0 10px 30px rgba(0,0,0,0.22);
+          -webkit-backdrop-filter: blur(18px) saturate(1.25);
+          backdrop-filter: blur(18px) saturate(1.25);
+        }
+        .header-action, .streak-chip {
+          box-shadow: inset 0 1px rgba(255,255,255,0.035), 0 6px 18px rgba(0,0,0,0.16);
+          transition: transform 0.22s var(--motion-spring), border-color 0.22s ease, background 0.22s ease;
+        }
+        .header-action:active, .streak-chip:active { transform: scale(0.94); }
+        .page-stage { min-height: calc(100vh - 9rem); }
+        .fade-in { animation: fadeIn 0.42s var(--motion-spring); }
+        .pop-in { animation: popIn 0.46s var(--motion-bounce); }
+        .sheet-slide-up { animation: sheetSlideUp 0.38s var(--motion-spring); }
         .badge-pulse { animation: badgePulse 2.4s ease-in-out infinite; }
         @keyframes badgePulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
-        @keyframes sheetSlideUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
-        .page-enter { animation: pageEnterRight 0.32s cubic-bezier(.22,1,.36,1); }
-        .page-enter-right { animation: pageEnterRight 0.32s cubic-bezier(.22,1,.36,1); }
-        .page-enter-left { animation: pageEnterLeft 0.32s cubic-bezier(.22,1,.36,1); }
-        .nav-icon-bounce { animation: navBounce 0.4s cubic-bezier(.34,1.56,.64,1); }
-        @keyframes navBounce { 0% { transform: scale(1); } 40% { transform: scale(1.28); } 100% { transform: scale(1); } }
-        @keyframes pageEnterRight { from { opacity: 0; transform: translateX(16px);} to { opacity: 1; transform: translateX(0);} }
-        @keyframes pageEnterLeft { from { opacity: 0; transform: translateX(-16px);} to { opacity: 1; transform: translateX(0);} }
-        .check-pop { animation: checkPop 0.35s cubic-bezier(.34,1.56,.64,1); }
-        .nav-btn { transition: color 0.2s ease, transform 0.15s ease; }
-        .nav-btn:active { transform: scale(0.92); }
-        .card-hover { transition: transform 0.18s ease, box-shadow 0.18s ease; box-shadow: 0 4px 14px rgba(0,0,0,0.28); transform-style: preserve-3d; perspective: 500px; }
-        .card-hover:active { transform: perspective(500px) rotateX(3deg) scale(0.985); box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
-        .tiffin-tile-3d { transition: transform 0.15s ease; transform-style: preserve-3d; }
-        .tiffin-tile-3d:active { transform: perspective(500px) rotateX(4deg) scale(0.98); }
-        .elevated { box-shadow: 0 6px 22px rgba(0,0,0,0.35); }
+        @keyframes sheetSlideUp {
+          from { opacity: 0; transform: translateY(34px) scale(0.985); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .page-enter { animation: pageEnterRight 0.42s var(--motion-spring); }
+        .page-enter-right { animation: pageEnterRight 0.42s var(--motion-spring); }
+        .page-enter-left { animation: pageEnterLeft 0.42s var(--motion-spring); }
+        .nav-icon-bounce { animation: navBounce 0.44s var(--motion-bounce); }
+        @keyframes navBounce {
+          0% { transform: translateY(0) scale(1); }
+          45% { transform: translateY(-2px) scale(1.16); }
+          100% { transform: translateY(0) scale(1); }
+        }
+        @keyframes pageEnterRight {
+          from { opacity: 0; transform: translate3d(26px,8px,0) scale(0.988); filter: blur(3px); }
+          to { opacity: 1; transform: translate3d(0,0,0) scale(1); filter: blur(0); }
+        }
+        @keyframes pageEnterLeft {
+          from { opacity: 0; transform: translate3d(-26px,8px,0) scale(0.988); filter: blur(3px); }
+          to { opacity: 1; transform: translate3d(0,0,0) scale(1); filter: blur(0); }
+        }
+        .check-pop { animation: checkPop 0.46s var(--motion-bounce); }
+        .bottom-nav {
+          background: rgba(28,24,21,0.84) !important;
+          -webkit-backdrop-filter: blur(22px) saturate(1.35);
+          backdrop-filter: blur(22px) saturate(1.35);
+          box-shadow: 0 -14px 38px rgba(0,0,0,0.28);
+        }
+        .bottom-nav-inner { isolation: isolate; }
+        .nav-active-pill {
+          box-shadow: inset 0 1px rgba(255,255,255,0.035), 0 8px 20px rgba(0,0,0,0.18);
+        }
+        .nav-top-indicator { box-shadow: 0 0 12px rgba(227,160,8,0.55); }
+        .nav-btn {
+          min-height: 52px;
+          border-radius: 13px;
+          transition: color 0.22s ease, transform 0.18s var(--motion-spring), opacity 0.22s ease;
+        }
+        .nav-btn:active { transform: scale(0.9) translateY(1px); }
+        .nav-btn.active { color: ${PALETTE.accent}; }
+        .nav-icon { transition: transform 0.28s var(--motion-spring), filter 0.24s ease; }
+        .nav-btn.active .nav-icon { transform: translateY(-1px) scale(1.06); filter: drop-shadow(0 4px 8px rgba(227,160,8,0.24)); }
+        .card-hover {
+          position: relative;
+          overflow: hidden;
+          transition: transform 0.24s var(--motion-spring), box-shadow 0.24s ease, border-color 0.24s ease;
+          box-shadow: 0 8px 24px rgba(0,0,0,0.28), inset 0 1px rgba(255,255,255,0.018);
+          transform-style: preserve-3d;
+          perspective: 700px;
+        }
+        .card-hover:active { transform: perspective(700px) rotateX(2deg) scale(0.982); box-shadow: 0 3px 10px rgba(0,0,0,0.3); }
+        .tiffin-stack {
+          background: linear-gradient(180deg, rgba(37,32,25,0.96), rgba(31,26,20,0.96)) !important;
+          box-shadow: 0 18px 42px rgba(0,0,0,0.34), inset 0 1px rgba(255,255,255,0.025);
+          -webkit-backdrop-filter: blur(12px);
+          backdrop-filter: blur(12px);
+        }
+        .tier-btn {
+          position: relative;
+          overflow: hidden;
+          min-height: 70px;
+          border: 1px solid transparent !important;
+          transition: transform 0.22s var(--motion-spring), background 0.28s ease, border-color 0.28s ease, box-shadow 0.28s ease !important;
+          transform-style: preserve-3d;
+        }
+        .tier-btn::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          background: linear-gradient(112deg, transparent 18%, rgba(255,255,255,0.08) 48%, transparent 74%);
+          transform: translateX(-115%);
+          transition: transform 0.62s var(--motion-spring);
+        }
+        .tier-btn:active::after { transform: translateX(115%); }
+        .tier-btn:not(.is-done) { background: rgba(28,24,21,0.38) !important; border-color: rgba(74,62,44,0.34) !important; }
+        .tier-btn.is-done { border-color: rgba(252,235,200,0.12) !important; box-shadow: 0 8px 24px rgba(227,160,8,0.18) !important; }
+        .tiffin-tile-3d:active { transform: perspective(700px) rotateX(3deg) scale(0.977); }
+        .tile-time {
+          border-radius: 999px;
+          padding: 0.28rem 0.48rem;
+          background: rgba(0,0,0,0.13);
+          border: 1px solid rgba(255,255,255,0.035);
+        }
+        .elevated { box-shadow: 0 12px 34px rgba(0,0,0,0.34), inset 0 1px rgba(255,255,255,0.02); }
         @keyframes dabbaSpin { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px);} to { opacity: 1; transform: translateY(0);} }
-        @keyframes popIn { from { opacity: 0; transform: scale(0.7);} to { opacity: 1; transform: scale(1);} }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px) scale(0.992);} to { opacity: 1; transform: translateY(0) scale(1);} }
+        @keyframes popIn { from { opacity: 0; transform: translateY(8px) scale(0.82);} to { opacity: 1; transform: translateY(0) scale(1);} }
 
-        @keyframes checkPop { 0% { transform: scale(0); } 60% { transform: scale(1.3); } 100% { transform: scale(1); } }
+        @keyframes checkPop {
+          0% { transform: scale(0.45) rotate(-18deg); opacity: 0; }
+          62% { transform: scale(1.24) rotate(4deg); opacity: 1; }
+          100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
         @keyframes confettiFall {
           0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
           100% { transform: translateY(420px) rotate(540deg); opacity: 0; }
@@ -4842,7 +4950,7 @@ function BulkTiffin() {
           100% { transform: translateY(-10vh) rotate(25deg); opacity: 0; }
         }
         .ambient-particle { position: fixed; bottom: 0; pointer-events: none; z-index: 0; filter: grayscale(0.15); }
-        .stagger-in { opacity: 0; animation: fadeIn 0.4s ease forwards; }
+        .stagger-in { opacity: 0; animation: fadeIn 0.5s var(--motion-spring) forwards; }
         .confetti { position: absolute; top: 0; animation: confettiFall linear forwards; }
         .flame-icon { animation: flicker 1.6s ease-in-out infinite; }
         ::-webkit-scrollbar { display: none; }
@@ -5295,7 +5403,7 @@ function BulkTiffin() {
       )}
 
       {/* Sticky header */}
-      <div style={{ position: "sticky", top: 0, zIndex: 20, background: "rgba(28,24,21,0.92)", backdropFilter: "blur(6px)", borderBottom: `1px solid ${PALETTE.border}`, paddingTop: "calc(env(safe-area-inset-top) + 6px)" }}>
+      <div className="app-header" style={{ position: "sticky", top: 0, zIndex: 20, background: "rgba(28,24,21,0.86)", backdropFilter: "blur(18px)", borderBottom: `1px solid ${PALETTE.border}`, paddingTop: "calc(env(safe-area-inset-top) + 6px)" }}>
         <div style={{ padding: "1.1rem 1.25rem", maxWidth: "480px", margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div style={{ fontSize: "0.66rem", letterSpacing: "0.14em", textTransform: "uppercase", color: PALETTE.accent2, fontWeight: 600 }}>
@@ -5316,11 +5424,15 @@ function BulkTiffin() {
                 setApiKeyInput(apiKey);
                 setShowSettings(true);
               }}
+              className="header-action"
+              aria-label="Open settings"
+              title="Settings"
               style={{ background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: "999px", width: "34px", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
             >
               <Settings size={15} color={PALETTE.textMuted} />
             </button>
             <div
+              className="streak-chip"
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -5366,7 +5478,7 @@ function BulkTiffin() {
       )}
 
       {/* Page content */}
-      <div key={tab} className={`page-enter page-enter-${slideDirection}`} style={{ maxWidth: "480px", margin: "0 auto", position: "relative", zIndex: 1 }} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+      <div key={tab} className={`page-stage page-enter page-enter-${slideDirection}`} style={{ maxWidth: "480px", margin: "0 auto", position: "relative", zIndex: 1 }} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
         {tab === "today" && (
           <>
             {showWelcome && (
@@ -5665,21 +5777,21 @@ function BulkTiffin() {
 
             {/* Tiffin stack */}
             <div style={{ padding: "1.25rem 1.25rem 0" }}>
-              <div className="elevated" style={{ background: PALETTE.surface, borderRadius: "20px", padding: "0.6rem", border: `1px solid ${PALETTE.border}` }}>
+              <div className="elevated tiffin-stack" style={{ background: PALETTE.surface, borderRadius: "22px", padding: "0.55rem", border: `1px solid ${PALETTE.border}` }}>
                 {TASKS.map((t, i) => {
                   const done = !!dailyTasks[t.id];
                   const overdue = !done && overdueTaskIds.includes(t.id);
                   return (
                     <button
                       key={t.id}
-                      className={`tier-btn stagger-in tiffin-tile-3d${overdue ? " overdue-tile" : ""}`}
+                      className={`tier-btn stagger-in tiffin-tile-3d${done ? " is-done" : ""}${overdue ? " overdue-tile" : ""}`}
                       onClick={() => toggleTask(t.id)}
                       style={{
                         width: "100%",
                         display: "flex",
                         alignItems: "center",
                         gap: "0.85rem",
-                        background: done ? PALETTE.accent : "transparent",
+                        background: done ? `linear-gradient(135deg, ${PALETTE.accent} 0%, ${PALETTE.accent2} 115%)` : "transparent",
                         border: "none",
                         borderRadius: "14px",
                         padding: "0.85rem 0.9rem",
@@ -5713,7 +5825,7 @@ function BulkTiffin() {
                           {t.kcal > 0 && <span> · ~{taskKcal(t)} kcal</span>}
                         </div>
                       </div>
-                      <div style={{ fontSize: "0.72rem", fontWeight: 600, color: done ? PALETTE.bg : PALETTE.textMutedBrown, whiteSpace: "nowrap" }}>{t.time}</div>
+                      <div className="tile-time" style={{ fontSize: "0.7rem", fontWeight: 700, color: done ? PALETTE.bg : PALETTE.textMuted, whiteSpace: "nowrap" }}>{t.time}</div>
                     </button>
                   );
                 })}
@@ -6271,25 +6383,43 @@ function BulkTiffin() {
               </button>
               {showFilter && (
                 <div className="fade-in" style={{ background: PALETTE.surfaceDark, borderRadius: "14px", padding: "0.9rem", border: `1px solid ${PALETTE.border}` }}>
-                  <div style={{ fontSize: "0.7rem", color: PALETTE.textMuted, marginBottom: "0.6rem" }}>Tap the ingredients you want to use:</div>
+                  <div style={{ fontSize: "0.7rem", color: PALETTE.textMuted, marginBottom: "0.6rem" }}>Tap a name to use it in a suggestion · tap × to remove it</div>
                   <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginBottom: "0.75rem" }}>
                     {pantryItems.map((p, i) => (
-                      <button
+                      <div
                         key={p.name + i}
-                        onClick={() => togglePantryItem(i)}
                         style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.3rem",
                           background: p.selected ? PALETTE.success : PALETTE.surface,
                           border: `1px solid ${p.selected ? PALETTE.success : PALETTE.border}`,
                           borderRadius: "999px",
-                          padding: "0.4rem 0.75rem",
-                          color: p.selected ? PALETTE.textPrimary : PALETTE.textSecondary,
-                          fontSize: "0.76rem",
-                          fontWeight: 600,
-                          cursor: "pointer",
+                          padding: "0.4rem 0.5rem 0.4rem 0.75rem",
                         }}
                       >
-                        {p.name}
-                      </button>
+                        <button
+                          onClick={() => togglePantryItem(i)}
+                          style={{
+                            background: "transparent",
+                            border: "none",
+                            color: p.selected ? PALETTE.textPrimary : PALETTE.textSecondary,
+                            fontSize: "0.76rem",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            padding: 0,
+                          }}
+                        >
+                          {p.name}
+                        </button>
+                        <button
+                          onClick={() => removeFromPantry(p.name)}
+                          title="Remove from pantry"
+                          style={{ background: "transparent", border: "none", cursor: "pointer", padding: "0.1rem", display: "flex", opacity: 0.6 }}
+                        >
+                          <X size={11} color={p.selected ? PALETTE.textPrimary : PALETTE.textMuted} />
+                        </button>
+                      </div>
                     ))}
                   </div>
                   <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.75rem" }}>
@@ -6738,6 +6868,9 @@ function BulkTiffin() {
 
       {/* Bottom navigation */}
       <div
+        className="bottom-nav"
+        role="navigation"
+        aria-label="Primary"
         style={{
           position: "fixed",
           bottom: 0,
@@ -6749,8 +6882,9 @@ function BulkTiffin() {
           zIndex: 30,
         }}
       >
-        <div style={{ maxWidth: "480px", margin: "0 auto", display: "flex", padding: "0.5rem 0.5rem calc(0.5rem + env(safe-area-inset-bottom))", position: "relative" }}>
+        <div className="bottom-nav-inner" style={{ maxWidth: "480px", margin: "0 auto", display: "flex", padding: "0.5rem 0.5rem calc(0.5rem + env(safe-area-inset-bottom))", position: "relative" }}>
           <div
+            className="nav-active-pill"
             style={{
               position: "absolute",
               top: "0.5rem",
@@ -6763,6 +6897,7 @@ function BulkTiffin() {
             }}
           />
           <div
+            className="nav-top-indicator"
             style={{
               position: "absolute",
               top: 0,
@@ -6781,8 +6916,10 @@ function BulkTiffin() {
             return (
               <button
                 key={item.id}
-                className="nav-btn"
+                className={`nav-btn${active ? " active" : ""}`}
                 onClick={() => setTab(item.id)}
+                aria-label={item.label}
+                aria-current={active ? "page" : undefined}
                 style={{
                   flex: 1,
                   background: "transparent",
@@ -6798,7 +6935,7 @@ function BulkTiffin() {
                   zIndex: 1,
                 }}
               >
-                <div style={{ position: "relative" }} className={active ? "nav-icon-bounce" : ""}>
+                <div style={{ position: "relative" }} className={`nav-icon${active ? " nav-icon-bounce" : ""}`}>
                   <Icon size={20} strokeWidth={active ? 2.4 : 2} />
                   {item.id === "today" && streakData.streak > 0 && (
                     <span
