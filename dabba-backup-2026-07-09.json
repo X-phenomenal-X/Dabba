@@ -1,0 +1,13 @@
+{
+  "exportedAt": "2026-07-09T01:48:39.621Z",
+  "app": "todays-dabba",
+  "version": 1,
+  "data": {
+    "api-key": "\"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\"",
+    "daily:2026-07-09": "{\"tasks\":{\"dinner\":false},\"extraItems\":[]}",
+    "history": "{\"2026-07-09\":{\"completed\":0,\"total\":6,\"kcal\":0,\"protein\":0}}",
+    "streak-data": "{\"streak\":1,\"lastActiveDate\":\"2026-07-09\",\"freezeAvailable\":true,\"lastMilestone\":0,\"bestStreak\":1}",
+    "targets": "{\"calorieTarget\":2800,\"proteinTarget\":95}",
+    "task-overrides": "{\"morningShake\":700,\"breakfast\":450,\"lunch\":750,\"dinner\":750,\"cookSession\":0,\"nightShake\":650}"
+  }
+}

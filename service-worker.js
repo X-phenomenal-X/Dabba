@@ -1,4 +1,4 @@
-const CACHE_NAME = "dabba-cache-v4";
+const CACHE_NAME = "dabba-cache-v6";
 const APP_SHELL = [
   "./manifest.json",
   "./icon-192.png",
@@ -14,6 +14,14 @@ const APP_SHELL = [
   "./banner-progress.png",
   "./banner-chef.png",
   "./banner-basket.png",
+  "./cat-curry.png",
+  "./cat-noodles.png",
+  "./cat-sandwich.png",
+  "./cat-egg.png",
+  "./cat-drink.png",
+  "./cat-sweet.png",
+  "./cat-other.png",
+  "./mascot.glb",
 ];
 
 self.addEventListener("install", (event) => {

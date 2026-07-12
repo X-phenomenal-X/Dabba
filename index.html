@@ -511,6 +511,15 @@ function Copy(props) {
     </IconBase>
   );
 }
+function Box3D(props) {
+  return (
+    <IconBase {...props}>
+      <path d="M12 3 L21 7.5 L21 16.5 L12 21 L3 16.5 L3 7.5 Z" />
+      <path d="M3 7.5 L12 12 L21 7.5" />
+      <path d="M12 12 L12 21" />
+    </IconBase>
+  );
+}
 
 </script>
 
@@ -2196,7 +2205,7 @@ function DishIllustration({ category = "other", size = 52 }) {
   if (!failed) {
     return (
       <div style={{ width: size, height: size, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: theme.bg }}>
-        <img src={imageSrc} alt="" width={size} height={size} onError={() => setFailed(true)} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+        <img src={imageSrc} alt="" width={size} height={size} loading="lazy" onError={() => setFailed(true)} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
       </div>
     );
   }
@@ -2367,6 +2376,7 @@ function RecipePhoto({ recipe, size = 52 }) {
         <img
           src={photoUrl}
           alt={recipe.name}
+          loading="lazy"
           onError={() => setFailed(true)}
           style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
         />
@@ -2756,7 +2766,7 @@ function CookingMode({ recipe, onClose, onAddToShopping, onMarkMeal }) {
 
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "1.1rem 1.25rem", borderBottom: `1px solid ${PALETTE.border}`, paddingTop: "calc(1.1rem + env(safe-area-inset-top))" }}>
-        <button onClick={onClose} style={{ background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: "999px", width: "34px", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+        <button onClick={onClose} title="Close" style={{ background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: "999px", width: "34px", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
           <X size={16} color={PALETTE.textPrimary} />
         </button>
         <div style={{ textAlign: "center", flex: 1, margin: "0 0.75rem" }}>
@@ -2872,8 +2882,31 @@ function CookingMode({ recipe, onClose, onAddToShopping, onMarkMeal }) {
             )}
           </>
         ) : (
-          <div className="pop-in" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem" }}>
-            <Mascot pct={100} size={110} />
+          <div className="pop-in" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem", position: "relative" }}>
+            {Array.from({ length: 18 }).map((_, i) => (
+              <div
+                key={i}
+                className="confetti"
+                style={{
+                  position: "absolute",
+                  top: "-20px",
+                  left: `${10 + Math.random() * 80}%`,
+                  width: "7px",
+                  height: "7px",
+                  borderRadius: i % 2 === 0 ? "50%" : "2px",
+                  background: [PALETTE.accent, PALETTE.accent2, PALETTE.success, PALETTE.textPrimary][i % 4],
+                  animationDuration: `${1.4 + Math.random() * 1}s`,
+                  animationDelay: `${Math.random() * 0.3}s`,
+                  zIndex: 2,
+                }}
+              />
+            ))}
+            <div style={{ position: "relative" }}>
+              <div style={{ position: "absolute", inset: "-16px", borderRadius: "50%", background: `radial-gradient(circle, ${PALETTE.accent}33 0%, transparent 70%)`, zIndex: 0 }} />
+              <div style={{ position: "relative", zIndex: 1 }}>
+                <Mascot pct={100} size={110} />
+              </div>
+            </div>
             <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: "1.3rem", color: PALETTE.textPrimary }}>{recipe.name} is ready! 🎉</div>
             <div style={{ fontSize: "0.85rem", color: PALETTE.textMuted, marginBottom: "0.25rem" }}>Pack half for tomorrow if this is a batch-cook meal.</div>
             {onMarkMeal && (
@@ -3033,6 +3066,23 @@ function DynamicRecipeCard({ recipe, onAddToShopping, onSave, onRemove, onStartC
                 <Shuffle size={13} /> Remix
               </button>
             )}
+            <button
+              onClick={async () => {
+                const text = `${recipe.name} (${recipe.cal})\n\nIngredients:\n${(recipe.ingredients || []).map((i) => `• ${i}`).join("\n")}\n\nSteps:\n${(recipe.steps || []).map((s, i) => `${i + 1}. ${s}`).join("\n")}\n\n— from Today's Dabba`;
+                if (navigator.share) {
+                  try {
+                    await navigator.share({ text, title: recipe.name });
+                  } catch (e) {}
+                } else if (navigator.clipboard) {
+                  try {
+                    await navigator.clipboard.writeText(text);
+                  } catch (e) {}
+                }
+              }}
+              style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: "transparent", border: `1px solid ${PALETTE.borderLight}`, borderRadius: "8px", padding: "0.5rem 0.8rem", color: PALETTE.textMuted, fontSize: "0.78rem", fontWeight: 600, cursor: "pointer" }}
+            >
+              <Share2 size={13} /> Share
+            </button>
             {onRemove && (
               <button
                 onClick={() => onRemove(recipe.name)}
@@ -3147,6 +3197,19 @@ function BulkTiffin() {
   const [showWelcome, setShowWelcome] = useState(false);
   const [show3DMascot, setShow3DMascot] = useState(false);
   const [mascotViewMode, setMascotViewMode] = useState("video");
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [heroModelLoaded, setHeroModelLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!window.matchMedia) return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setPrefersReducedMotion(mq.matches);
+    const handler = (e) => setPrefersReducedMotion(e.matches);
+    if (mq.addEventListener) mq.addEventListener("change", handler);
+    return () => {
+      if (mq.removeEventListener) mq.removeEventListener("change", handler);
+    };
+  }, []);
   const [notifyPermission, setNotifyPermission] = useState(typeof Notification !== "undefined" ? Notification.permission : "unsupported");
   const [notifiedToday, setNotifiedToday] = useState([]);
   const [clockTick, setClockTick] = useState(0);
@@ -4271,6 +4334,46 @@ function BulkTiffin() {
     }
   };
 
+  const exportCsv = () => {
+    try {
+      const dates = Array.from(new Set([...weights.map((w) => w.date), ...Object.keys(history)])).sort();
+      if (!dates.length) {
+        showToast("Nothing to export yet");
+        return;
+      }
+      const weightByDate = {};
+      weights.forEach((w) => {
+        weightByDate[w.date] = w.weight;
+      });
+      const rows = [["date", "weight_kg", "calories", "protein_g", "tiles_completed", "tiles_total", "adherence_pct"]];
+      dates.forEach((d) => {
+        const h = history[d];
+        rows.push([
+          d,
+          weightByDate[d] !== undefined ? weightByDate[d] : "",
+          h ? h.kcal : "",
+          h ? h.protein || "" : "",
+          h ? h.completed : "",
+          h ? h.total : "",
+          h ? Math.round((h.completed / h.total) * 100) : "",
+        ]);
+      });
+      const csv = rows.map((r) => r.join(",")).join("\n");
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `dabba-history-${todayKey()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast("CSV downloaded");
+    } catch (e) {
+      showToast("Export failed — try again");
+    }
+  };
+
   const handleImportFile = async (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
@@ -4679,6 +4782,10 @@ function BulkTiffin() {
         .tier-btn:active { transform: scale(0.98); }
         .fade-in { animation: fadeIn 0.3s ease; }
         .pop-in { animation: popIn 0.4s cubic-bezier(.34,1.56,.64,1); }
+        .sheet-slide-up { animation: sheetSlideUp 0.3s cubic-bezier(.22,1,.36,1); }
+        .badge-pulse { animation: badgePulse 2.4s ease-in-out infinite; }
+        @keyframes badgePulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+        @keyframes sheetSlideUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
         .page-enter { animation: pageEnterRight 0.32s cubic-bezier(.22,1,.36,1); }
         .page-enter-right { animation: pageEnterRight 0.32s cubic-bezier(.22,1,.36,1); }
         .page-enter-left { animation: pageEnterLeft 0.32s cubic-bezier(.22,1,.36,1); }
@@ -4798,7 +4905,7 @@ function BulkTiffin() {
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.8rem" }}>
               <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: "1.05rem" }}>Meet Dabba</div>
-              <button onClick={() => setShow3DMascot(false)} style={{ background: PALETTE.surfaceDark, border: "none", borderRadius: "999px", width: "30px", height: "30px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+              <button onClick={() => setShow3DMascot(false)} title="Close" style={{ background: PALETTE.surfaceDark, border: "none", borderRadius: "999px", width: "30px", height: "30px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
                 <X size={14} color={PALETTE.textMuted} />
               </button>
             </div>
@@ -4809,7 +4916,8 @@ function BulkTiffin() {
               ) : (
                 <model-viewer
                   src="mascot.glb"
-                  auto-rotate
+                  poster="icon-512.png"
+                  auto-rotate={prefersReducedMotion ? undefined : true}
                   camera-controls
                   shadow-intensity="1"
                   exposure="1"
@@ -4849,7 +4957,7 @@ function BulkTiffin() {
               <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: "1.05rem" }}>
                 {new Date(selectedDay + "T00:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
               </div>
-              <button onClick={() => setSelectedDay(null)} style={{ background: "transparent", border: "none", cursor: "pointer" }}>
+              <button onClick={() => setSelectedDay(null)} title="Close" style={{ background: "transparent", border: "none", cursor: "pointer" }}>
                 <X size={16} color={PALETTE.textMuted} />
               </button>
             </div>
@@ -4880,13 +4988,14 @@ function BulkTiffin() {
           onClick={() => setRemixOpen(false)}
         >
           <div
-            className="pop-in"
+            className="sheet-slide-up"
             onClick={(e) => e.stopPropagation()}
-            style={{ background: "#211C15", borderRadius: "20px 20px 0 0", padding: "1.5rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom))", width: "100%", maxWidth: "480px", margin: "0 auto", border: `1px solid ${PALETTE.border}`, borderBottom: "none", maxHeight: "85vh", overflowY: "auto" }}
+            style={{ background: "#211C15", borderRadius: "20px 20px 0 0", padding: "0.6rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom))", width: "100%", maxWidth: "480px", margin: "0 auto", border: `1px solid ${PALETTE.border}`, borderBottom: "none", maxHeight: "85vh", overflowY: "auto", boxShadow: "0 -12px 40px rgba(0,0,0,0.4)" }}
           >
+            <div style={{ width: "36px", height: "4px", borderRadius: "999px", background: PALETTE.borderLight, margin: "0 auto 0.9rem" }} />
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
               <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: "1.1rem" }}>Remix recipe</div>
-              <button onClick={() => setRemixOpen(false)} style={{ background: "transparent", border: "none", cursor: "pointer" }}>
+              <button onClick={() => setRemixOpen(false)} title="Close" style={{ background: "transparent", border: "none", cursor: "pointer" }}>
                 <X size={18} color={PALETTE.textMuted} />
               </button>
             </div>
@@ -4984,12 +5093,12 @@ function BulkTiffin() {
           onClick={() => setShowSettings(false)}
         >
           <div
-            className="pop-in"
+            className="sheet-slide-up"
             onClick={(e) => e.stopPropagation()}
             style={{
               background: "#211C15",
               borderRadius: "20px 20px 0 0",
-              padding: "1.5rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom))",
+              padding: "0.6rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom))",
               width: "100%",
               maxWidth: "480px",
               margin: "0 auto",
@@ -4997,11 +5106,13 @@ function BulkTiffin() {
               borderBottom: "none",
               maxHeight: "85vh",
               overflowY: "auto",
+              boxShadow: "0 -12px 40px rgba(0,0,0,0.4)",
             }}
           >
+            <div style={{ width: "36px", height: "4px", borderRadius: "999px", background: PALETTE.borderLight, margin: "0 auto 0.9rem" }} />
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
               <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: "1.15rem" }}>Settings</div>
-              <button onClick={() => setShowSettings(false)} style={{ background: "transparent", border: "none", cursor: "pointer" }}>
+              <button onClick={() => setShowSettings(false)} title="Close" style={{ background: "transparent", border: "none", cursor: "pointer" }}>
                 <X size={18} color={PALETTE.textMuted} />
               </button>
             </div>
@@ -5095,6 +5206,12 @@ function BulkTiffin() {
                 <input ref={importFileRef} type="file" accept="application/json,.json" onChange={handleImportFile} style={{ display: "none" }} />
               </div>
               {importError && <div style={{ fontSize: "0.7rem", color: PALETTE.error, marginTop: "0.5rem" }}>{importError}</div>}
+              <button
+                onClick={exportCsv}
+                style={{ width: "100%", marginTop: "0.5rem", background: "transparent", border: `1px solid ${PALETTE.border}`, borderRadius: "8px", padding: "0.5rem", color: PALETTE.textMuted, fontWeight: 600, fontSize: "0.74rem", cursor: "pointer" }}
+              >
+                Export weight & adherence history as CSV
+              </button>
             </div>
 
             <div style={{ marginBottom: "1.25rem" }}>
@@ -5288,10 +5405,29 @@ function BulkTiffin() {
                     setShow3DMascot(true);
                     setMascotViewMode("video");
                   }}
-                  style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer" }}
+                  style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", position: "relative" }}
                   title="Tap to see Dabba in 3D"
                 >
                   <Mascot pct={Math.round((completedCount / TASKS.length) * 100)} />
+                  <div
+                    className="badge-pulse"
+                    style={{
+                      position: "absolute",
+                      bottom: "2px",
+                      right: "2px",
+                      width: "26px",
+                      height: "26px",
+                      borderRadius: "50%",
+                      background: PALETTE.accent,
+                      border: `2px solid ${PALETTE.surfaceDark}`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      boxShadow: `0 2px 8px ${PALETTE.accent}88`,
+                    }}
+                  >
+                    <Box3D size={13} color={PALETTE.bg} strokeWidth={2.4} />
+                  </div>
                 </button>
                 <div style={{ flex: 1, position: "relative", zIndex: 1 }}>
                   <div style={{ fontSize: "1rem", fontWeight: 900, letterSpacing: "-0.01em" }}>
@@ -5303,8 +5439,17 @@ function BulkTiffin() {
                     {completedCount === TASKS.length && "Fully packed — nice work today! 🎉"}
                   </div>
                 </div>
-                <div style={{ flexShrink: 0, position: "relative", zIndex: 1 }}>
-                  <Dabba3D size={52} />
+                <div style={{ flexShrink: 0, position: "relative", zIndex: 1, width: "64px", height: "64px" }}>
+                  <model-viewer
+                    src="mascot.glb"
+                    poster="icon-192.png"
+                    auto-rotate={prefersReducedMotion ? undefined : true}
+                    auto-rotate-delay="0"
+                    rotation-per-second="30deg"
+                    disable-zoom
+                    interaction-prompt="none"
+                    style={{ width: "100%", height: "100%", "--poster-color": "transparent", backgroundColor: "transparent" }}
+                  ></model-viewer>
                 </div>
               </div>
             </div>
@@ -5509,7 +5654,7 @@ function BulkTiffin() {
                           {item.kcal} kcal{item.protein ? ` · ${item.protein}g protein` : ""}
                         </div>
                       </div>
-                      <button onClick={() => removeExtraItem(item.id)} style={{ background: "transparent", border: "none", cursor: "pointer", padding: "0.3rem" }}>
+                      <button onClick={() => removeExtraItem(item.id)} title="Remove item" style={{ background: "transparent", border: "none", cursor: "pointer", padding: "0.3rem" }}>
                         <X size={14} color={PALETTE.textMuted} />
                       </button>
                     </div>
@@ -5735,7 +5880,7 @@ function BulkTiffin() {
                         <span style={{ fontSize: "0.8rem", color: PALETTE.textSecondary }}>{w.date}</span>
                         <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
                           <span style={{ fontSize: "0.85rem", fontWeight: 600 }}>{w.weight} kg</span>
-                          <button onClick={() => deleteWeight(w.date)} style={{ background: "transparent", border: "none", cursor: "pointer", padding: "0.2rem" }}>
+                          <button onClick={() => deleteWeight(w.date)} title="Delete entry" style={{ background: "transparent", border: "none", cursor: "pointer", padding: "0.2rem" }}>
                             <X size={14} color={PALETTE.textMuted} />
                           </button>
                         </div>
@@ -6084,7 +6229,7 @@ function BulkTiffin() {
                           style={{ background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: "12px", padding: "0.4rem", cursor: "pointer", textAlign: "center" }}
                         >
                           <div style={{ width: "100%", aspectRatio: "1", borderRadius: "8px", overflow: "hidden", marginBottom: "0.35rem" }}>
-                            <img src={m.strMealThumb} alt={m.strMeal} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                            <img src={m.strMealThumb} alt={m.strMeal} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                           </div>
                           <div style={{ fontSize: "0.68rem", color: PALETTE.textPrimary, lineHeight: 1.3 }}>{m.strMeal}</div>
                         </button>
@@ -6694,16 +6839,19 @@ function BulkTiffin() {
             bottom: "5.5rem",
             left: "50%",
             transform: "translateX(-50%)",
-            background: PALETTE.surface,
-            border: `1px solid ${PALETTE.border}`,
-            borderRadius: "10px",
-            padding: "0.6rem 1.1rem",
+            background: `linear-gradient(135deg, ${PALETTE.surface} 0%, ${PALETTE.surfaceDark} 100%)`,
+            border: `1px solid ${PALETTE.borderLight}`,
+            borderRadius: "999px",
+            padding: "0.65rem 1.2rem",
             fontSize: "0.85rem",
+            fontWeight: 600,
             color: PALETTE.textPrimary,
             display: "flex",
             alignItems: "center",
-            gap: "0.4rem",
+            gap: "0.5rem",
             zIndex: 40,
+            boxShadow: "0 8px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(0,0,0,0.2)",
+            whiteSpace: "nowrap",
           }}
         >
           <Sparkles size={14} color={PALETTE.accent} /> {toast}
